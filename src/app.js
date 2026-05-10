@@ -11,11 +11,9 @@ const userRoutes = require("./routes/users");
 // import database connection
 const sequelize = require("./config/database");
 
-
 // middleware
 
 app.use(express.json());
-
 
 // routes
 
@@ -27,11 +25,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/users", userRoutes);
 
-
 // database connection & server start
 
 sequelize
-  .sync({ alter: true })
+  .sync()
   .then(() => {
     console.log("Database connected");
 

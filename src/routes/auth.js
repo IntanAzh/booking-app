@@ -96,7 +96,18 @@ router.get("/profile", verifyToken, (req, res) => {
 
 router.get("/admin", verifyToken, checkRole(["admin"]), (req, res) => {
   res.json({ message: "Welcome Admin!" });
-});
+}); 
+
+// provider Only
+
+router.get(
+  "/provider",
+  verifyToken,
+  checkRole(["provider"]),
+  (req, res) => {
+    res.json({ message: "Welcome Provider!" });
+  }
+);
 
 // EXPORT HARUS DI PALING BAWAH
 module.exports = router;
