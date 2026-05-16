@@ -24,7 +24,7 @@ router.post(
         image_url,
       } = req.body;
 
-      // validasi 
+      // validasi
       if (!category_id || !name || !price || !duration) {
         return res.status(400).json({
           message: "Data wajib diisi",
