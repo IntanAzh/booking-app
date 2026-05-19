@@ -1,125 +1,236 @@
 const express = require("express");
 const router = express.Router();
 
+const { Op } = require("sequelize");
+const sequelize = require("../config/database");
 const Booking = require("../models/booking");
+const Payment = require("../models/payment");
 const Service = require("../models/service");
+const TimeSlot = require("../models/timeSlot");
 const User = require("../models/user");
+const { calculateDynamicPrice } = require("../utils/pricing");
 
 const { verifyToken, checkRole } = require("../middlewares/authMiddleware");
 
-// create booking (customer yang buat booking) - dynamic pricing: weekend surcharge 20%, buffer end time 15 menit setelah end_time untuk antisipasi keterlambatan provider
+const ACTIVE_BOOKING_STATUSES = ["pending", "confirmed"];
+
+const canAccessBooking = (user, booking) =>
+  user.role === "admin" ||
+  Number(user.id) === Number(booking.customer_id) ||
+  Number(user.id) === Number(booking.provider_id);
+
+const canManageBooking = (user, booking) =>
+  user.role === "admin" || Number(user.id) === Number(booking.provider_id);
+
+const addMinutes = (date, minutes) => {
+  const result = new Date(date);
+  result.setMinutes(result.getMinutes() + minutes);
+  return result;
+};
+
+const bookingIncludes = [
+  {
+    model: User,
+    as: "customer",
+    attributes: ["id", "name", "email"],
+  },
+  {
+    model: User,
+    as: "provider",
+    attributes: ["id", "name", "email"],
+  },
+  {
+    model: Service,
+    as: "service",
+  },
+  {
+    model: TimeSlot,
+    as: "slot",
+  },
+  {
+    model: Payment,
+    as: "payments",
+  },
+];
 
 router.post("/", verifyToken, checkRole(["customer"]), async (req, res) => {
+  const transaction = await sequelize.transaction();
+
   try {
-    const { service_id, start_time, end_time } = req.body;
+    const { service_id, provider_id, slot_id, start_time, end_time } = req.body;
 
-    // validasi input
-    if (!service_id || !start_time || !end_time) {
+    if (!service_id || (!slot_id && (!provider_id || !start_time))) {
+      await transaction.rollback();
       return res.status(400).json({
-        message: "Semua data wajib diisi",
+        message:
+          "service_id wajib diisi. Gunakan slot_id atau provider_id dan start_time.",
       });
     }
 
-    // cek apakah service_id valid
-    const service = await Service.findByPk(service_id);
+    const service = await Service.findByPk(service_id, { transaction });
 
-    if (!service) {
+    if (!service || !service.is_active) {
+      await transaction.rollback();
       return res.status(404).json({
-        message: "Service tidak ditemukan",
+        message: "Service tidak ditemukan atau tidak aktif",
       });
     }
 
-    // validasi slot waktu (tidak boleh bentrok dengan booking lain yang statusnya pending atau confirmed)
-    const existingBooking = await Booking.findOne({
+    let slot = null;
+    let providerId = provider_id || service.provider_id;
+    let startTime = start_time ? new Date(start_time) : null;
+    let endTime = end_time ? new Date(end_time) : null;
+
+    if (slot_id) {
+      slot = await TimeSlot.findByPk(slot_id, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      if (!slot) {
+        await transaction.rollback();
+        return res.status(404).json({ message: "Slot waktu tidak ditemukan" });
+      }
+
+      if (slot.status !== "available") {
+        await transaction.rollback();
+        return res.status(400).json({ message: "Slot waktu tidak tersedia" });
+      }
+
+      if (Number(slot.service_id) !== Number(service_id)) {
+        await transaction.rollback();
+        return res.status(400).json({
+          message: "Slot waktu tidak sesuai dengan service yang dipilih",
+        });
+      }
+
+      providerId = slot.provider_id;
+      startTime = new Date(slot.start_time);
+      endTime = new Date(slot.end_time);
+    }
+
+    if (!providerId) {
+      await transaction.rollback();
+      return res.status(400).json({
+        message: "provider_id wajib diisi jika service belum punya provider",
+      });
+    }
+
+    const provider = await User.findByPk(providerId, { transaction });
+    if (!provider || provider.role !== "provider") {
+      await transaction.rollback();
+      return res.status(404).json({ message: "Provider tidak ditemukan" });
+    }
+
+    if (!endTime) {
+      endTime = addMinutes(startTime, service.duration);
+    }
+
+    if (!startTime || Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) {
+      await transaction.rollback();
+      return res.status(400).json({ message: "Format waktu tidak valid" });
+    }
+
+    if (endTime <= startTime) {
+      await transaction.rollback();
+      return res.status(400).json({
+        message: "end_time harus lebih besar dari start_time",
+      });
+    }
+
+    const bufferEnd = addMinutes(endTime, 15);
+    const overlappingBooking = await Booking.findOne({
       where: {
         service_id,
-        start_time,
-        status: ["pending", "confirmed"],
+        provider_id: providerId,
+        status: {
+          [Op.in]: ACTIVE_BOOKING_STATUSES,
+        },
+        start_time: {
+          [Op.lt]: bufferEnd,
+        },
+        buffer_end_time: {
+          [Op.gt]: startTime,
+        },
       },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
     });
 
-    if (existingBooking) {
+    if (overlappingBooking) {
+      await transaction.rollback();
       return res.status(400).json({
-        message: "Slot waktu sudah dibooking",
+        message: "Slot waktu bentrok dengan booking lain",
       });
     }
 
-    // dynamic pricing: weekend surcharge 20%
-    let totalPrice = parseFloat(service.price);
+    const pricing = await calculateDynamicPrice({
+      service,
+      providerId,
+      startTime,
+    });
 
-    const bookingDate = new Date(start_time);
-    const day = bookingDate.getDay();
+    const booking = await Booking.create(
+      {
+        customer_id: req.user.id,
+        service_id,
+        provider_id: providerId,
+        slot_id: slot ? slot.id : null,
+        start_time: startTime,
+        end_time: endTime,
+        buffer_end_time: bufferEnd,
+        total_price: pricing.total_price,
+        status: "pending",
+        payment_status: "unpaid",
+      },
+      { transaction },
+    );
 
-    // weekend surcharge 20%
-    if (day === 0 || day === 6) {
-      totalPrice = totalPrice * 1.2;
+    if (slot) {
+      await slot.update({ status: "booked" }, { transaction });
     }
 
-    // buffer end time 15 menit setelah end_time untuk antisipasi keterlambatan provider
-    const bufferEnd = new Date(end_time);
-    bufferEnd.setMinutes(bufferEnd.getMinutes() + 15);
-
-    //create booking
-    const booking = await Booking.create({
-      customer_id: req.user.id,
-      service_id,
-      start_time,
-      end_time,
-      buffer_end_time: bufferEnd,
-      total_price: totalPrice,
-      status: "pending",
-    });
+    await transaction.commit();
 
     res.status(201).json({
       message: "Booking berhasil dibuat",
-      data: booking,
+      data: {
+        booking,
+        pricing,
+      },
     });
   } catch (error) {
+    await transaction.rollback();
     res.status(500).json({
       message: error.message,
     });
   }
 });
 
-// get all bookings (admin bisa lihat semua, customer hanya bisa lihat booking sendiri)
-
 router.get("/", verifyToken, async (req, res) => {
   try {
-    let bookings;
+    const where = {};
 
-    // admin bisa lihat semua booking, customer hanya bisa lihat booking sendiri
-    if (req.user.role === "admin") {
-      bookings = await Booking.findAll({
-        include: [
-          {
-            model: User,
-            as: "customer",
-            attributes: ["id", "name", "email"],
-          },
-          {
-            model: Service,
-            as: "service",
-          },
-        ],
-      });
-    } else {
-      // customer hanya bisa lihat booking sendiri
-      bookings = await Booking.findAll({
-        where: {
-          customer_id: req.user.id,
-        },
-
-        include: [
-          {
-            model: Service,
-            as: "service",
-          },
-        ],
-      });
+    if (req.user.role === "customer") {
+      where.customer_id = req.user.id;
     }
 
+    if (req.user.role === "provider") {
+      where.provider_id = req.user.id;
+    }
+
+    if (req.query.status) {
+      where.status = req.query.status;
+    }
+
+    const bookings = await Booking.findAll({
+      where,
+      include: bookingIncludes,
+      order: [["start_time", "DESC"]],
+    });
+
     res.json({
-      message: "Data booking",
+      message: "Histori booking",
       data: bookings,
     });
   } catch (error) {
@@ -129,22 +240,10 @@ router.get("/", verifyToken, async (req, res) => {
   }
 });
 
-//get booking by ID
-
 router.get("/:id", verifyToken, async (req, res) => {
   try {
     const booking = await Booking.findByPk(req.params.id, {
-      include: [
-        {
-          model: User,
-          as: "customer",
-          attributes: ["id", "name", "email"],
-        },
-        {
-          model: Service,
-          as: "service",
-        },
-      ],
+      include: bookingIncludes,
     });
 
     if (!booking) {
@@ -153,8 +252,7 @@ router.get("/:id", verifyToken, async (req, res) => {
       });
     }
 
-    //validasi owner
-    if (req.user.role !== "admin" && booking.customer_id !== req.user.id) {
+    if (!canAccessBooking(req.user, booking)) {
       return res.status(403).json({
         message: "Akses ditolak",
       });
@@ -171,8 +269,6 @@ router.get("/:id", verifyToken, async (req, res) => {
   }
 });
 
-// Update booking status (confirm, complete, cancel) - hanya admin dan provider yang bisa update status
-
 router.put(
   "/:id",
   verifyToken,
@@ -180,6 +276,11 @@ router.put(
   async (req, res) => {
     try {
       const { status } = req.body;
+      const validStatuses = ["pending", "confirmed", "completed", "cancelled"];
+
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ message: "Status booking tidak valid" });
+      }
 
       const booking = await Booking.findByPk(req.params.id);
 
@@ -187,6 +288,10 @@ router.put(
         return res.status(404).json({
           message: "Booking tidak ditemukan",
         });
+      }
+
+      if (!canManageBooking(req.user, booking)) {
+        return res.status(403).json({ message: "Akses ditolak" });
       }
 
       await booking.update({
@@ -205,33 +310,149 @@ router.put(
   },
 );
 
-// cancel booking (soft delete)
+router.patch("/:id/cancel", verifyToken, async (req, res) => {
+  const transaction = await sequelize.transaction();
 
-router.delete("/:id", verifyToken, async (req, res) => {
   try {
-    const booking = await Booking.findByPk(req.params.id);
+    const booking = await Booking.findByPk(req.params.id, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
 
     if (!booking) {
+      await transaction.rollback();
       return res.status(404).json({
         message: "Booking tidak ditemukan",
       });
     }
 
-    // validasi owner
-    if (req.user.role !== "admin" && booking.customer_id !== req.user.id) {
+    if (!canAccessBooking(req.user, booking)) {
+      await transaction.rollback();
       return res.status(403).json({
         message: "Akses ditolak",
       });
     }
 
-    await booking.update({
-      status: "cancelled",
-    });
+    if (booking.status === "completed") {
+      await transaction.rollback();
+      return res.status(400).json({
+        message: "Booking yang sudah selesai tidak bisa dibatalkan",
+      });
+    }
+
+    await booking.update(
+      {
+        status: "cancelled",
+        cancellation_reason: req.body.reason || null,
+        payment_status:
+          booking.payment_status === "paid" ? "refunded" : booking.payment_status,
+      },
+      { transaction },
+    );
+
+    if (booking.slot_id) {
+      await TimeSlot.update(
+        { status: "available" },
+        {
+          where: { id: booking.slot_id },
+          transaction,
+        },
+      );
+    }
+
+    if (booking.payment_status === "paid") {
+      await Payment.update(
+        { status: "refunded" },
+        {
+          where: { booking_id: booking.id, status: "paid" },
+          transaction,
+        },
+      );
+    }
+
+    await transaction.commit();
 
     res.json({
       message: "Booking berhasil dibatalkan",
+      data: booking,
     });
   } catch (error) {
+    await transaction.rollback();
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+});
+
+router.delete("/:id", verifyToken, async (req, res) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const booking = await Booking.findByPk(req.params.id, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+
+    if (!booking) {
+      await transaction.rollback();
+      return res.status(404).json({
+        message: "Booking tidak ditemukan",
+      });
+    }
+
+    if (!canAccessBooking(req.user, booking)) {
+      await transaction.rollback();
+      return res.status(403).json({
+        message: "Akses ditolak",
+      });
+    }
+
+    if (booking.status === "completed") {
+      await transaction.rollback();
+      return res.status(400).json({
+        message: "Booking yang sudah selesai tidak bisa dibatalkan",
+      });
+    }
+
+    await booking.update(
+      {
+        status: "cancelled",
+        cancellation_reason:
+          req.body.reason || "Dibatalkan melalui endpoint DELETE",
+        payment_status:
+          booking.payment_status === "paid" ? "refunded" : booking.payment_status,
+      },
+      { transaction },
+    );
+
+    if (booking.slot_id) {
+      await TimeSlot.update(
+        { status: "available" },
+        {
+          where: { id: booking.slot_id },
+          transaction,
+        },
+      );
+    }
+
+    if (booking.payment_status === "paid") {
+      await Payment.update(
+        { status: "refunded" },
+        {
+          where: { booking_id: booking.id, status: "paid" },
+          transaction,
+        },
+      );
+    }
+
+    await transaction.commit();
+
+    res.json({
+      message: "Booking berhasil dibatalkan",
+      data: booking,
+    });
+  } catch (error) {
+    await transaction.rollback();
     res.status(500).json({
       message: error.message,
     });

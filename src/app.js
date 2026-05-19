@@ -10,9 +10,22 @@ const userRoutes = require("./routes/users");
 const serviceRoutes = require("./routes/services");
 const bookingRoutes = require("./routes/bookings");
 const dashboardRoutes = require("./routes/dashboard");
+const providerRoutes = require("./routes/providers");
+const scheduleRoutes = require("./routes/schedules");
+const slotRoutes = require("./routes/slots");
+const paymentRoutes = require("./routes/payments");
 
 // import database connection
 const sequelize = require("./config/database");
+require("./models/category");
+require("./models/user");
+require("./models/service");
+require("./models/serviceVariant");
+require("./models/staffSpeciality");
+require("./models/serviceSchedule");
+require("./models/timeSlot");
+require("./models/booking");
+require("./models/payment");
 
 // middleware
 app.use(express.json());
@@ -26,12 +39,18 @@ app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/services", serviceRoutes);
+app.use("/api/providers", providerRoutes);
+app.use("/api/schedules", scheduleRoutes);
+app.use("/api/slots", slotRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+
+const syncOptions = process.env.DB_SYNC_ALTER === "true" ? { alter: true } : {};
 
 // database connection & server start
 sequelize
-  .sync()
+  .sync(syncOptions)
   .then(() => {
     console.log("Database connected");
 

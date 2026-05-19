@@ -9,60 +9,81 @@ const { verifyToken, checkRole } = require("../middlewares/authMiddleware");
 
 const { Sequelize } = require("sequelize");
 
-// Admin dashboard - statistik users, services, bookings, revenue, dll
+// Dashboard statistik users, services, bookings, revenue, dll
 
-router.get("/", verifyToken, checkRole(["admin"]), async (req, res) => {
+router.get("/", verifyToken, checkRole(["admin", "provider"]), async (req, res) => {
   try {
+    const bookingScope =
+      req.user.role === "provider" ? { provider_id: req.user.id } : {};
+    const serviceScope =
+      req.user.role === "provider" ? { provider_id: req.user.id } : {};
+
     // total users
-    const totalUsers = await User.count();
+    const totalUsers = req.user.role === "admin" ? await User.count() : null;
 
-    const totalCustomers = await User.count({
-      where: {
-        role: "customer",
-      },
-    });
+    const totalCustomers =
+      req.user.role === "admin"
+        ? await User.count({
+            where: {
+              role: "customer",
+            },
+          })
+        : null;
 
-    const totalProviders = await User.count({
-      where: {
-        role: "provider",
-      },
-    });
+    const totalProviders =
+      req.user.role === "admin"
+        ? await User.count({
+            where: {
+              role: "provider",
+            },
+          })
+        : null;
 
     // total services
-    const totalServices = await Service.count();
+    const totalServices = await Service.count({
+      where: serviceScope,
+    });
 
     // total bookings
-    const totalBookings = await Booking.count();
+    const totalBookings = await Booking.count({
+      where: bookingScope,
+    });
 
     // booking status breakdown
     const pendingBookings = await Booking.count({
       where: {
+        ...bookingScope,
         status: "pending",
       },
     });
 
     const confirmedBookings = await Booking.count({
       where: {
+        ...bookingScope,
         status: "confirmed",
       },
     });
 
     const completedBookings = await Booking.count({
       where: {
+        ...bookingScope,
         status: "completed",
       },
     });
 
     const cancelledBookings = await Booking.count({
       where: {
+        ...bookingScope,
         status: "cancelled",
       },
     });
 
-    // total revenue (hanya hitung booking yang statusnya completed)
+    // total revenue hitung booking completed yang sudah paid.
     const revenueResult = await Booking.sum("total_price", {
       where: {
+        ...bookingScope,
         status: "completed",
+        payment_status: "paid",
       },
     });
 
@@ -73,6 +94,7 @@ router.get("/", verifyToken, checkRole(["admin"]), async (req, res) => {
       attributes: [
         "service_id",
         [Sequelize.fn("COUNT", Sequelize.col("service_id")), "total_bookings"],
+        [Sequelize.fn("SUM", Sequelize.col("total_price")), "total_revenue"],
       ],
 
       include: [
@@ -83,7 +105,9 @@ router.get("/", verifyToken, checkRole(["admin"]), async (req, res) => {
         },
       ],
 
-      group: ["service_id"],
+      where: bookingScope,
+
+      group: ["Booking.service_id", "service.id", "service.name", "service.price"],
 
       order: [[Sequelize.literal("total_bookings"), "DESC"]],
 
@@ -92,14 +116,17 @@ router.get("/", verifyToken, checkRole(["admin"]), async (req, res) => {
 
     // response dashboard
     res.json({
-      message: "Dashboard Admin",
+      message: req.user.role === "admin" ? "Dashboard Admin" : "Dashboard Provider",
 
       data: {
-        users: {
-          total_users: totalUsers,
-          total_customers: totalCustomers,
-          total_providers: totalProviders,
-        },
+        users:
+          req.user.role === "admin"
+            ? {
+                total_users: totalUsers,
+                total_customers: totalCustomers,
+                total_providers: totalProviders,
+              }
+            : undefined,
 
         services: {
           total_services: totalServices,

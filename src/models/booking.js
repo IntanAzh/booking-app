@@ -3,6 +3,7 @@ const sequelize = require("../config/database");
 
 const User = require("./user");
 const Service = require("./service");
+const TimeSlot = require("./timeSlot");
 
 const Booking = sequelize.define(
   "Booking",
@@ -21,6 +22,16 @@ const Booking = sequelize.define(
     service_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
+    },
+
+    provider_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+
+    slot_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
 
     start_time: {
@@ -47,6 +58,16 @@ const Booking = sequelize.define(
       type: DataTypes.ENUM("pending", "confirmed", "completed", "cancelled"),
       defaultValue: "pending",
     },
+
+    payment_status: {
+      type: DataTypes.ENUM("unpaid", "paid", "refunded"),
+      defaultValue: "unpaid",
+    },
+
+    cancellation_reason: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
   {
     tableName: "bookings",
@@ -66,10 +87,18 @@ Booking.belongsTo(User, {
   as: "customer",
 });
 
+User.hasMany(Booking, {
+  foreignKey: "provider_id",
+  as: "provider_bookings",
+});
+
+Booking.belongsTo(User, {
+  foreignKey: "provider_id",
+  as: "provider",
+});
+
 
 // relasi service -> booking
-
-
 Service.hasMany(Booking, {
   foreignKey: "service_id",
   as: "bookings",
@@ -78,6 +107,16 @@ Service.hasMany(Booking, {
 Booking.belongsTo(Service, {
   foreignKey: "service_id",
   as: "service",
+});
+
+TimeSlot.hasMany(Booking, {
+  foreignKey: "slot_id",
+  as: "bookings",
+});
+
+Booking.belongsTo(TimeSlot, {
+  foreignKey: "slot_id",
+  as: "slot",
 });
 
 module.exports = Booking;

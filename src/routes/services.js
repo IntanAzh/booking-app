@@ -3,6 +3,7 @@ const router = express.Router();
 
 const Service = require("../models/service");
 const Category = require("../models/category");
+const User = require("../models/user");
 
 const { verifyToken, checkRole } = require("../middlewares/authMiddleware");
 
@@ -16,6 +17,7 @@ router.post(
     try {
       const {
         category_id,
+        provider_id,
         name,
         slug,
         description,
@@ -31,8 +33,18 @@ router.post(
         });
       }
 
+      const providerId =
+        provider_id || (req.user.role === "provider" ? req.user.id : null);
+
+      if (req.user.role === "provider" && providerId !== req.user.id) {
+        return res.status(403).json({
+          message: "Provider hanya bisa membuat layanan untuk dirinya sendiri",
+        });
+      }
+
       const service = await Service.create({
         category_id,
+        provider_id: providerId,
         name,
         slug,
         description,
@@ -57,11 +69,21 @@ router.post(
 
 router.get("/", async (req, res) => {
   try {
+    const where = {};
+    if (req.query.provider_id) where.provider_id = req.query.provider_id;
+    if (req.query.category_id) where.category_id = req.query.category_id;
+
     const services = await Service.findAll({
+      where,
       include: [
         {
           model: Category,
           as: "category",
+        },
+        {
+          model: User,
+          as: "provider",
+          attributes: ["id", "name", "email"],
         },
       ],
     });
@@ -86,6 +108,11 @@ router.get("/:id", async (req, res) => {
         {
           model: Category,
           as: "category",
+        },
+        {
+          model: User,
+          as: "provider",
+          attributes: ["id", "name", "email"],
         },
       ],
     });
@@ -123,7 +150,21 @@ router.put(
         });
       }
 
-      await service.update(req.body);
+      if (
+        req.user.role === "provider" &&
+        Number(service.provider_id) !== Number(req.user.id)
+      ) {
+        return res.status(403).json({
+          message: "Akses ditolak",
+        });
+      }
+
+      const payload = { ...req.body };
+      if (req.user.role === "provider") {
+        delete payload.provider_id;
+      }
+
+      await service.update(payload);
 
       res.json({
         message: "Service berhasil diupdate",

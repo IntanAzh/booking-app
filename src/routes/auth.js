@@ -27,6 +27,13 @@ router.post("/register", async (req, res) => {
       });
     }
 
+    const allowedRoles = ["admin", "customer", "provider"];
+    if (role && !allowedRoles.includes(role)) {
+      return res.status(400).json({
+        message: "Role tidak valid",
+      });
+    }
+
     // cek email sudah terdaftar atau belum
     const existingUser = await User.findOne({
       where: { email },

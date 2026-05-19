@@ -2,6 +2,7 @@ const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 
 const Category = require("./category");
+const User = require("./user");
 
 const Service = sequelize.define(
   "Service",
@@ -15,6 +16,11 @@ const Service = sequelize.define(
     category_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
+    },
+
+    provider_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
 
     name: {
@@ -69,6 +75,16 @@ Category.hasMany(Service, {
 Service.belongsTo(Category, {
   foreignKey: "category_id",
   as: "category",
+});
+
+User.hasMany(Service, {
+  foreignKey: "provider_id",
+  as: "services",
+});
+
+Service.belongsTo(User, {
+  foreignKey: "provider_id",
+  as: "provider",
 });
 
 module.exports = Service;
