@@ -202,6 +202,34 @@ URL:
 
 ## 4. Provider
 
+### Create provider
+
+Role: `admin`
+
+Method: `POST`
+
+URL:
+
+```text
+{{base_url}}/api/providers
+```
+
+Headers:
+
+```text
+Authorization: Bearer {{admin_token}}
+```
+
+Body:
+
+```json
+{
+  "name": "Provider Baru",
+  "email": "providerbaru@example.com",
+  "password": "password123"
+}
+```
+
 ### List provider
 
 Method: `GET`
@@ -222,6 +250,52 @@ URL:
 {{base_url}}/api/providers/2
 ```
 
+### Profil provider login
+
+Role: `provider`
+
+Method: `GET`
+
+URL:
+
+```text
+{{base_url}}/api/providers/me
+```
+
+Headers:
+
+```text
+Authorization: Bearer {{provider_token}}
+```
+
+### Update profil provider login
+
+Role: `provider`
+
+Method: `PUT`
+
+URL:
+
+```text
+{{base_url}}/api/providers/me
+```
+
+Headers:
+
+```text
+Authorization: Bearer {{provider_token}}
+```
+
+Body:
+
+```json
+{
+  "name": "Provider Update",
+  "email": "providerupdate@example.com",
+  "password": "passwordbaru123"
+}
+```
+
 ### List layanan milik provider login
 
 Role: `provider`
@@ -239,6 +313,53 @@ Headers:
 ```text
 Authorization: Bearer {{provider_token}}
 ```
+
+### Update provider by admin
+
+Role: `admin`
+
+Method: `PUT`
+
+URL:
+
+```text
+{{base_url}}/api/providers/2
+```
+
+Headers:
+
+```text
+Authorization: Bearer {{admin_token}}
+```
+
+Body:
+
+```json
+{
+  "name": "Provider Admin Update",
+  "email": "provideradminupdate@example.com"
+}
+```
+
+### Delete provider by admin
+
+Role: `admin`
+
+Method: `DELETE`
+
+URL:
+
+```text
+{{base_url}}/api/providers/2
+```
+
+Headers:
+
+```text
+Authorization: Bearer {{admin_token}}
+```
+
+Catatan: provider tidak bisa dihapus jika masih punya booking aktif dengan status `pending` atau `confirmed`.
 
 ## 5. Services
 

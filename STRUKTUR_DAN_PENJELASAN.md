@@ -7,7 +7,7 @@ Aplikasi ini adalah backend booking layanan berbasis Express, Sequelize, MySQL, 
 - Role `customer`, `provider`, dan `admin`.
 - Register, login, profile, JWT, dan role guard.
 - CRUD data layanan.
-- Endpoint khusus data penyedia layanan.
+- CRUD khusus data penyedia layanan.
 - Jadwal layanan per provider dan service.
 - Slot waktu per provider, service, dan tanggal.
 - Booking oleh customer.
@@ -72,7 +72,7 @@ booking-app/
 - `src/models/payment.js`: model simulasi pembayaran booking.
 - `src/models/booking.js`: ditambah `provider_id`, `slot_id`, `payment_status`, dan `cancellation_reason`.
 - `src/models/service.js`: ditambah `provider_id` agar layanan bisa dikaitkan ke penyedia.
-- `src/routes/providers.js`: list dan detail penyedia layanan.
+- `src/routes/providers.js`: CRUD penyedia layanan, profil provider login, dan list layanan milik provider.
 - `src/routes/schedules.js`: CRUD jadwal layanan.
 - `src/routes/slots.js`: CRUD slot waktu.
 - `src/routes/payments.js`: simulasi pembayaran dan list pembayaran.
@@ -96,8 +96,13 @@ booking-app/
 - `PUT /api/users/:id`
 - `DELETE /api/users/:id`
 - `GET /api/providers`
-- `GET /api/providers/:id`
+- `POST /api/providers`
+- `GET /api/providers/me`
+- `PUT /api/providers/me`
 - `GET /api/providers/me/services`
+- `GET /api/providers/:id`
+- `PUT /api/providers/:id`
+- `DELETE /api/providers/:id`
 
 ### Services
 
