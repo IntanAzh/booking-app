@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 
+const { Op } = require("sequelize");
+const Booking = require("../models/booking");
 const TimeSlot = require("../models/timeSlot");
 const Service = require("../models/service");
 const User = require("../models/user");
@@ -9,18 +11,50 @@ const { verifyToken, checkRole } = require("../middlewares/authMiddleware");
 const canManageSlot = (user, providerId) =>
   user.role === "admin" || Number(user.id) === Number(providerId);
 
+const ACTIVE_BOOKING_STATUSES = ["pending", "confirmed"];
+
+const withSlotAvailability = async (slot) => {
+  const plainSlot = slot.toJSON();
+  const activeBookingCount = await Booking.count({
+    where: {
+      slot_id: slot.id,
+      status: {
+        [Op.in]: ACTIVE_BOOKING_STATUSES,
+      },
+    },
+  });
+
+  return {
+    ...plainSlot,
+    active_bookings: activeBookingCount,
+    remaining_capacity: Math.max(Number(slot.capacity) - activeBookingCount, 0),
+    is_full: activeBookingCount >= Number(slot.capacity),
+  };
+};
+
 router.post(
   "/",
   verifyToken,
   checkRole(["admin", "provider"]),
   async (req, res) => {
     try {
-      const { provider_id, service_id, slot_date, start_time, end_time, status } =
-        req.body;
+      const {
+        provider_id,
+        service_id,
+        slot_date,
+        start_time,
+        end_time,
+        status,
+        capacity,
+      } = req.body;
       const providerId = provider_id || req.user.id;
 
       if (!providerId || !service_id || !slot_date || !start_time || !end_time) {
         return res.status(400).json({ message: "Data slot wajib diisi" });
+      }
+
+      if (capacity !== undefined && Number(capacity) < 1) {
+        return res.status(400).json({ message: "Capacity minimal 1" });
       }
 
       if (!canManageSlot(req.user, providerId)) {
@@ -44,6 +78,7 @@ router.post(
         start_time,
         end_time,
         status: status || "available",
+        capacity: capacity || 1,
       });
 
       res.status(201).json({
@@ -72,10 +107,11 @@ router.get("/", async (req, res) => {
       ],
       order: [["start_time", "ASC"]],
     });
+    const data = await Promise.all(slots.map(withSlotAvailability));
 
     res.json({
       message: "Data slot waktu",
-      data: slots,
+      data,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -98,11 +134,17 @@ router.put(
         return res.status(403).json({ message: "Akses ditolak" });
       }
 
-      await slot.update(req.body);
+      const payload = { ...req.body };
+      if (payload.capacity !== undefined && Number(payload.capacity) < 1) {
+        return res.status(400).json({ message: "Capacity minimal 1" });
+      }
+
+      await slot.update(payload);
+      const data = await withSlotAvailability(slot);
 
       res.json({
         message: "Slot waktu berhasil diupdate",
-        data: slot,
+        data,
       });
     } catch (error) {
       res.status(500).json({ message: error.message });

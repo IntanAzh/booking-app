@@ -144,12 +144,37 @@ booking-app/
 2. Admin/provider membuat jadwal layanan.
 3. Admin/provider membuat slot waktu.
 4. Customer login dan membuat booking memakai `slot_id`, atau memakai `provider_id` + `start_time`.
-5. Sistem mengecek provider, service, status slot, dan booking lain yang overlap.
+5. Sistem mengecek provider, service, status slot, kapasitas slot, dan booking lain yang overlap.
 6. Sistem menghitung dynamic pricing.
 7. Booking dibuat dengan status `pending` dan `payment_status` `unpaid`.
 8. Customer/admin/provider melakukan simulasi pembayaran melalui `/api/payments/simulate`.
 9. Jika pembayaran sukses, booking menjadi `confirmed` dan `payment_status` menjadi `paid`.
 10. Booking bisa dibatalkan melalui `PATCH /api/bookings/:id/cancel`; slot kembali `available`.
+
+## Perhitungan Slot Waktu
+
+Table `time_slots` menyimpan slot aktual yang bisa dibooking. Kolom penting:
+
+- `provider_id`: penyedia layanan.
+- `service_id`: layanan yang tersedia pada slot tersebut.
+- `slot_date`: tanggal slot.
+- `start_time` dan `end_time`: jam mulai dan selesai.
+- `capacity`: jumlah maksimal booking aktif pada slot yang sama.
+- `status`: `available`, `booked`, atau `blocked`.
+
+Saat customer booking memakai `slot_id`, sistem menghitung jumlah booking aktif pada slot tersebut dengan status `pending` atau `confirmed`. Jika jumlahnya sudah sama dengan atau lebih besar dari `capacity`, booking ditolak dengan pesan `Slot waktu sudah penuh`.
+
+Contoh:
+
+```text
+time_slots.id = 1
+start_time = 09:00
+end_time = 10:00
+capacity = 1
+active_bookings = 1
+```
+
+Request booking berikutnya ke `slot_id = 1` akan ditolak.
 
 ## Dynamic pricing
 

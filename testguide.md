@@ -612,7 +612,8 @@ Body:
   "service_id": 1,
   "slot_date": "2026-05-18",
   "start_time": "2026-05-18T09:00:00.000Z",
-  "end_time": "2026-05-18T10:00:00.000Z"
+  "end_time": "2026-05-18T10:00:00.000Z",
+  "capacity": 1
 }
 ```
 
@@ -625,9 +626,12 @@ Jika admin ingin menentukan provider:
   "slot_date": "2026-05-18",
   "start_time": "2026-05-18T09:00:00.000Z",
   "end_time": "2026-05-18T10:00:00.000Z",
-  "status": "available"
+  "status": "available",
+  "capacity": 2
 }
 ```
+
+`capacity` adalah jumlah maksimal booking aktif untuk slot tersebut. Jika `capacity` bernilai `1`, maka hanya satu customer yang bisa booking pada jam itu. Jika `capacity` bernilai `2`, maksimal dua booking aktif boleh masuk pada slot yang sama.
 
 ### List slot
 
@@ -710,6 +714,19 @@ Body:
 ```
 
 Response akan mengembalikan data booking dan breakdown dynamic pricing.
+
+Jika slot sudah penuh, response akan seperti ini:
+
+```json
+{
+  "message": "Slot waktu sudah penuh",
+  "data": {
+    "slot_id": 1,
+    "capacity": 1,
+    "active_bookings": 1
+  }
+}
+```
 
 ### Create booking tanpa slot
 

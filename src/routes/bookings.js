@@ -53,6 +53,35 @@ const bookingIncludes = [
   },
 ];
 
+const getSlotBookingCount = (slotId, transaction) =>
+  Booking.count({
+    where: {
+      slot_id: slotId,
+      status: {
+        [Op.in]: ACTIVE_BOOKING_STATUSES,
+      },
+    },
+    transaction,
+  });
+
+const syncSlotStatus = async (slotId, transaction) => {
+  const slot = await TimeSlot.findByPk(slotId, {
+    transaction,
+    lock: transaction.LOCK.UPDATE,
+  });
+
+  if (!slot || slot.status === "blocked") {
+    return slot;
+  }
+
+  const activeBookingCount = await getSlotBookingCount(slotId, transaction);
+  const nextStatus =
+    activeBookingCount >= Number(slot.capacity) ? "booked" : "available";
+
+  await slot.update({ status: nextStatus }, { transaction });
+  return slot;
+};
+
 router.post("/", verifyToken, checkRole(["customer"]), async (req, res) => {
   const transaction = await sequelize.transaction();
 
@@ -92,9 +121,9 @@ router.post("/", verifyToken, checkRole(["customer"]), async (req, res) => {
         return res.status(404).json({ message: "Slot waktu tidak ditemukan" });
       }
 
-      if (slot.status !== "available") {
+      if (slot.status === "blocked") {
         await transaction.rollback();
-        return res.status(400).json({ message: "Slot waktu tidak tersedia" });
+        return res.status(400).json({ message: "Slot waktu diblokir" });
       }
 
       if (Number(slot.service_id) !== Number(service_id)) {
@@ -107,6 +136,20 @@ router.post("/", verifyToken, checkRole(["customer"]), async (req, res) => {
       providerId = slot.provider_id;
       startTime = new Date(slot.start_time);
       endTime = new Date(slot.end_time);
+
+      const activeBookingCount = await getSlotBookingCount(slot.id, transaction);
+      if (activeBookingCount >= Number(slot.capacity)) {
+        await slot.update({ status: "booked" }, { transaction });
+        await transaction.rollback();
+        return res.status(400).json({
+          message: "Slot waktu sudah penuh",
+          data: {
+            slot_id: slot.id,
+            capacity: slot.capacity,
+            active_bookings: activeBookingCount,
+          },
+        });
+      }
     }
 
     if (!providerId) {
@@ -139,29 +182,59 @@ router.post("/", verifyToken, checkRole(["customer"]), async (req, res) => {
     }
 
     const bufferEnd = addMinutes(endTime, 15);
-    const overlappingBooking = await Booking.findOne({
-      where: {
-        service_id,
-        provider_id: providerId,
-        status: {
-          [Op.in]: ACTIVE_BOOKING_STATUSES,
+    if (!slot) {
+      const overlappingBooking = await Booking.findOne({
+        where: {
+          service_id,
+          provider_id: providerId,
+          status: {
+            [Op.in]: ACTIVE_BOOKING_STATUSES,
+          },
+          start_time: {
+            [Op.lt]: bufferEnd,
+          },
+          buffer_end_time: {
+            [Op.gt]: startTime,
+          },
         },
-        start_time: {
-          [Op.lt]: bufferEnd,
-        },
-        buffer_end_time: {
-          [Op.gt]: startTime,
-        },
-      },
-      transaction,
-      lock: transaction.LOCK.UPDATE,
-    });
-
-    if (overlappingBooking) {
-      await transaction.rollback();
-      return res.status(400).json({
-        message: "Slot waktu bentrok dengan booking lain",
+        transaction,
+        lock: transaction.LOCK.UPDATE,
       });
+
+      if (overlappingBooking) {
+        await transaction.rollback();
+        return res.status(400).json({
+          message: "Slot waktu bentrok dengan booking lain",
+        });
+      }
+    } else {
+      const overlappingBooking = await Booking.findOne({
+        where: {
+          slot_id: {
+            [Op.ne]: slot.id,
+          },
+          service_id,
+          provider_id: providerId,
+          status: {
+            [Op.in]: ACTIVE_BOOKING_STATUSES,
+          },
+          start_time: {
+            [Op.lt]: bufferEnd,
+          },
+          buffer_end_time: {
+            [Op.gt]: startTime,
+          },
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      if (overlappingBooking) {
+        await transaction.rollback();
+        return res.status(400).json({
+          message: "Jam booking bentrok dengan slot lain",
+        });
+      }
     }
 
     const pricing = await calculateDynamicPrice({
@@ -187,7 +260,7 @@ router.post("/", verifyToken, checkRole(["customer"]), async (req, res) => {
     );
 
     if (slot) {
-      await slot.update({ status: "booked" }, { transaction });
+      await syncSlotStatus(slot.id, transaction);
     }
 
     await transaction.commit();
@@ -351,13 +424,7 @@ router.patch("/:id/cancel", verifyToken, async (req, res) => {
     );
 
     if (booking.slot_id) {
-      await TimeSlot.update(
-        { status: "available" },
-        {
-          where: { id: booking.slot_id },
-          transaction,
-        },
-      );
+      await syncSlotStatus(booking.slot_id, transaction);
     }
 
     if (booking.payment_status === "paid") {
@@ -426,13 +493,7 @@ router.delete("/:id", verifyToken, async (req, res) => {
     );
 
     if (booking.slot_id) {
-      await TimeSlot.update(
-        { status: "available" },
-        {
-          where: { id: booking.slot_id },
-          transaction,
-        },
-      );
+      await syncSlotStatus(booking.slot_id, transaction);
     }
 
     if (booking.payment_status === "paid") {
