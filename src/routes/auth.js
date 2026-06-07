@@ -6,7 +6,11 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 const User = require("../models/user");
-const { verifyToken, checkRole } = require("../middlewares/authMiddleware");
+const {
+  verifyToken,
+  checkRole,
+  blacklistToken,
+} = require("../middlewares/authMiddleware");
 
 // Test route untuk memastikan router ini aktif
 router.get("/", (req, res) => {
@@ -132,6 +136,15 @@ router.get("/profile", verifyToken, (req, res) => {
   res.json({
     message: "Profile berhasil diakses",
     user: req.user,
+  });
+});
+
+// logout semua role
+router.post("/logout", verifyToken, (req, res) => {
+  blacklistToken(req.token);
+
+  res.json({
+    message: "Logout berhasil",
   });
 });
 

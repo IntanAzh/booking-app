@@ -135,6 +135,26 @@ Headers:
 Authorization: Bearer {{customer_token}}
 ```
 
+### Logout
+
+Role: `admin`, `provider`, atau `customer`
+
+Method: `POST`
+
+URL:
+
+```text
+{{base_url}}/api/auth/logout
+```
+
+Headers:
+
+```text
+Authorization: Bearer {{customer_token}}
+```
+
+Setelah logout, token yang sama tidak bisa dipakai lagi ke endpoint yang butuh login. Untuk admin/provider, ganti token header menjadi `{{admin_token}}` atau `{{provider_token}}`.
+
 ## 3. Users
 
 ### List semua user

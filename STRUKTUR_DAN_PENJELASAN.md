@@ -5,7 +5,7 @@
 Aplikasi ini adalah backend booking layanan berbasis Express, Sequelize, MySQL, dan JWT. Fitur yang sudah disiapkan:
 
 - Role `customer`, `provider`, dan `admin`.
-- Register, login, profile, JWT, dan role guard.
+- Register, login, logout, profile, JWT, dan role guard.
 - CRUD data layanan.
 - CRUD khusus data penyedia layanan.
 - Jadwal layanan per provider dan service.
@@ -87,6 +87,7 @@ booking-app/
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `POST /api/auth/logout`
 - `GET /api/auth/profile`
 
 ### Users dan provider
