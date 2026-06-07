@@ -195,6 +195,12 @@ Table `service_schedules` menyimpan jadwal kerja provider untuk layanan tertentu
 - `start_time` dan `end_time`: jam mulai dan selesai.
 - `is_available`: apakah jadwal tersebut aktif tersedia.
 
+Jika database lama masih memakai kolom `day_of_week` dan muncul error `Unknown column 'service_schedules.day'`, jalankan file SQL:
+
+```text
+database/migrate_service_schedules_day.sql
+```
+
 Endpoint CRUD jadwal layanan:
 
 ```text
