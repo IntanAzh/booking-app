@@ -113,6 +113,12 @@ booking-app/
 - `PUT /api/services/:id`
 - `DELETE /api/services/:id`
 
+Create dan update service memvalidasi relasi wajib:
+
+- `category_id` harus ada di table `categories`.
+- `provider_id` harus ada di table `users` dengan role `provider`.
+- Jika category atau provider belum ada, service tidak bisa dibuat.
+
 ### Jadwal dan slot
 
 - `POST /api/schedules`

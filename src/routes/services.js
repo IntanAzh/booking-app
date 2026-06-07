@@ -7,6 +7,41 @@ const User = require("../models/user");
 
 const { verifyToken, checkRole } = require("../middlewares/authMiddleware");
 
+const validateCategory = async (categoryId) => {
+  const category = await Category.findByPk(categoryId);
+
+  if (!category) {
+    const error = new Error("Category tidak ditemukan. Buat category terlebih dahulu.");
+    error.status = 404;
+    throw error;
+  }
+
+  return category;
+};
+
+const validateProvider = async (providerId) => {
+  if (!providerId) {
+    const error = new Error("Provider wajib diisi. Buat provider terlebih dahulu.");
+    error.status = 400;
+    throw error;
+  }
+
+  const provider = await User.findOne({
+    where: {
+      id: providerId,
+      role: "provider",
+    },
+  });
+
+  if (!provider) {
+    const error = new Error("Provider tidak ditemukan atau role bukan provider.");
+    error.status = 404;
+    throw error;
+  }
+
+  return provider;
+};
+
 // Create Service
 
 router.post(
@@ -29,18 +64,24 @@ router.post(
       // validasi
       if (!category_id || !name || !price || !duration) {
         return res.status(400).json({
-          message: "Data wajib diisi",
+          message: "Category, name, price, dan duration wajib diisi",
         });
       }
 
       const providerId =
         provider_id || (req.user.role === "provider" ? req.user.id : null);
 
-      if (req.user.role === "provider" && providerId !== req.user.id) {
+      if (
+        req.user.role === "provider" &&
+        Number(providerId) !== Number(req.user.id)
+      ) {
         return res.status(403).json({
           message: "Provider hanya bisa membuat layanan untuk dirinya sendiri",
         });
       }
+
+      await validateCategory(category_id);
+      await validateProvider(providerId);
 
       const service = await Service.create({
         category_id,
@@ -58,7 +99,7 @@ router.post(
         data: service,
       });
     } catch (error) {
-      res.status(500).json({
+      res.status(error.status || 500).json({
         message: error.message,
       });
     }
@@ -164,6 +205,26 @@ router.put(
         delete payload.provider_id;
       }
 
+      if (payload.category_id !== undefined) {
+        if (!payload.category_id) {
+          return res.status(400).json({
+            message: "Category tidak boleh kosong",
+          });
+        }
+
+        await validateCategory(payload.category_id);
+      }
+
+      if (payload.provider_id !== undefined) {
+        if (!payload.provider_id) {
+          return res.status(400).json({
+            message: "Provider tidak boleh kosong",
+          });
+        }
+
+        await validateProvider(payload.provider_id);
+      }
+
       await service.update(payload);
 
       res.json({
@@ -171,7 +232,7 @@ router.put(
         data: service,
       });
     } catch (error) {
-      res.status(500).json({
+      res.status(error.status || 500).json({
         message: error.message,
       });
     }

@@ -383,13 +383,21 @@ Catatan: provider tidak bisa dihapus jika masih punya booking aktif dengan statu
 
 ## 5. Services
 
-Catatan: `category_id` harus sudah ada di tabel `categories`. Jika belum ada endpoint category, buat data category langsung dari database terlebih dahulu.
+Catatan: `category_id` dan `provider_id` harus sudah ada sebelum membuat service. Jika category kosong atau provider kosong, API akan menolak create service.
+
+Untuk admin, `provider_id` wajib dikirim dan harus mengarah ke user dengan role `provider`. Untuk provider login, `provider_id` otomatis memakai ID dari token provider.
 
 Contoh SQL:
 
 ```sql
 INSERT INTO categories (name, createdAt, updatedAt)
 VALUES ('Kecantikan', NOW(), NOW());
+```
+
+Pastikan provider sudah dibuat dari endpoint:
+
+```text
+POST {{base_url}}/api/providers
 ```
 
 ### Create service

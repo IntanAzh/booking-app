@@ -20,7 +20,7 @@ const Service = sequelize.define(
 
     provider_id: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      allowNull: false,
     },
 
     name: {

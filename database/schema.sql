@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS categories (
 CREATE TABLE IF NOT EXISTS services (
   id INT NOT NULL AUTO_INCREMENT,
   category_id INT NOT NULL,
-  provider_id INT NULL,
+  provider_id INT NOT NULL,
   name VARCHAR(255) NOT NULL,
   slug VARCHAR(255) NULL,
   description TEXT NULL,
