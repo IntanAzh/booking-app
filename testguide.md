@@ -483,15 +483,11 @@ URL:
 
 ## 6. Jadwal Layanan
 
-`day_of_week` memakai format:
+`day` memakai format:
 
-- `0`: Minggu
-- `1`: Senin
-- `2`: Selasa
-- `3`: Rabu
-- `4`: Kamis
-- `5`: Jumat
-- `6`: Sabtu
+```text
+monday, tuesday, wednesday, thursday, friday, saturday, sunday
+```
 
 ### Create schedule
 
@@ -516,9 +512,10 @@ Body:
 ```json
 {
   "service_id": 1,
-  "day_of_week": 1,
+  "day": "monday",
   "start_time": "09:00:00",
-  "end_time": "17:00:00"
+  "end_time": "17:00:00",
+  "is_available": true
 }
 ```
 
@@ -528,9 +525,10 @@ Jika admin ingin menentukan provider:
 {
   "provider_id": 2,
   "service_id": 1,
-  "day_of_week": 1,
+  "day": "monday",
   "start_time": "09:00:00",
-  "end_time": "17:00:00"
+  "end_time": "17:00:00",
+  "is_available": true
 }
 ```
 
@@ -549,6 +547,8 @@ Filter opsional:
 ```text
 {{base_url}}/api/schedules?provider_id=2
 {{base_url}}/api/schedules?service_id=1
+{{base_url}}/api/schedules?day=monday
+{{base_url}}/api/schedules?is_available=true
 ```
 
 ### Update schedule
@@ -569,7 +569,7 @@ Body:
 {
   "start_time": "10:00:00",
   "end_time": "18:00:00",
-  "is_active": true
+  "is_available": true
 }
 ```
 
@@ -906,6 +906,12 @@ Body:
 }
 ```
 
+Method yang valid:
+
+```text
+cash, transfer, ewallet, card
+```
+
 Jika sukses:
 
 - Payment dibuat dengan status `paid`.
@@ -947,6 +953,56 @@ URL:
 ```text
 {{base_url}}/api/payments
 ```
+
+### Detail payment
+
+Role: customer pemilik booking, provider pemilik booking, atau admin
+
+Method: `GET`
+
+URL:
+
+```text
+{{base_url}}/api/payments/1
+```
+
+Headers:
+
+```text
+Authorization: Bearer {{customer_token}}
+```
+
+### Refund payment
+
+Role: `admin` atau provider pemilik booking
+
+Method: `PATCH`
+
+URL:
+
+```text
+{{base_url}}/api/payments/1/refund
+```
+
+Headers:
+
+```text
+Authorization: Bearer {{admin_token}}
+```
+
+Body:
+
+```json
+{
+  "reason": "Customer meminta refund"
+}
+```
+
+Jika refund berhasil:
+
+- Payment berubah menjadi `refunded`.
+- Booking berubah menjadi `cancelled`, kecuali booking sudah `completed`.
+- `payment_status` booking menjadi `refunded`.
 
 ## 10. Dashboard
 

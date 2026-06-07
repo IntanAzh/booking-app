@@ -67,7 +67,7 @@ booking-app/
 
 ## File penting yang dibuat atau diperbarui
 
-- `src/models/serviceSchedule.js`: model jadwal mingguan provider untuk sebuah layanan.
+- `src/models/serviceSchedule.js`: model jadwal mingguan provider untuk sebuah layanan dengan `day`, `start_time`, `end_time`, dan `is_available`.
 - `src/models/timeSlot.js`: model slot waktu aktual yang bisa `available`, `booked`, atau `blocked`.
 - `src/models/payment.js`: model simulasi pembayaran booking.
 - `src/models/booking.js`: ditambah `provider_id`, `slot_id`, `payment_status`, dan `cancellation_reason`.
@@ -75,7 +75,7 @@ booking-app/
 - `src/routes/providers.js`: CRUD penyedia layanan, profil provider login, dan list layanan milik provider.
 - `src/routes/schedules.js`: CRUD jadwal layanan.
 - `src/routes/slots.js`: CRUD slot waktu.
-- `src/routes/payments.js`: simulasi pembayaran dan list pembayaran.
+- `src/routes/payments.js`: simulasi pembayaran, detail pembayaran, list pembayaran, dan refund.
 - `src/routes/bookings.js`: booking, histori, validasi overlap slot, dynamic pricing, update status, dan cancel.
 - `src/routes/dashboard.js`: statistik booking dan revenue untuk admin/provider.
 - `src/utils/pricing.js`: logika dynamic pricing.
@@ -136,6 +136,8 @@ booking-app/
 
 - `POST /api/payments/simulate`
 - `GET /api/payments`
+- `GET /api/payments/:id`
+- `PATCH /api/payments/:id/refund`
 - `GET /api/dashboard`
 
 ## Alur booking
@@ -175,6 +177,25 @@ active_bookings = 1
 ```
 
 Request booking berikutnya ke `slot_id = 1` akan ditolak.
+
+## Jadwal Layanan
+
+Table `service_schedules` menyimpan jadwal kerja provider untuk layanan tertentu. Kolom penting:
+
+- `provider_id`: penyedia layanan.
+- `service_id`: layanan yang dijadwalkan.
+- `day`: hari dalam bentuk `monday`, `tuesday`, `wednesday`, `thursday`, `friday`, `saturday`, atau `sunday`.
+- `start_time` dan `end_time`: jam mulai dan selesai.
+- `is_available`: apakah jadwal tersebut aktif tersedia.
+
+Endpoint CRUD jadwal layanan:
+
+```text
+POST   /api/schedules
+GET    /api/schedules
+PUT    /api/schedules/:id
+DELETE /api/schedules/:id
+```
 
 ## Dynamic pricing
 

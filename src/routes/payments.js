@@ -5,6 +5,8 @@ const Booking = require("../models/booking");
 const Payment = require("../models/payment");
 const { verifyToken } = require("../middlewares/authMiddleware");
 
+const paymentMethods = ["cash", "transfer", "ewallet", "card"];
+
 const canAccessBooking = (user, booking) => {
   if (!booking) return false;
 
@@ -15,12 +17,22 @@ const canAccessBooking = (user, booking) => {
   );
 };
 
+const canAccessPayment = (user, payment) =>
+  payment && canAccessBooking(user, payment.booking);
+
 router.post("/simulate", verifyToken, async (req, res) => {
   try {
     const { booking_id, method, force_status } = req.body;
 
     if (!booking_id) {
       return res.status(400).json({ message: "booking_id wajib diisi" });
+    }
+
+    if (method && !paymentMethods.includes(method)) {
+      return res.status(400).json({
+        message: "Method pembayaran tidak valid",
+        valid_methods: paymentMethods,
+      });
     }
 
     const booking = await Booking.findByPk(booking_id);
@@ -37,6 +49,12 @@ router.post("/simulate", verifyToken, async (req, res) => {
       return res
         .status(400)
         .json({ message: "Booking yang dibatalkan tidak bisa dibayar" });
+    }
+
+    if (booking.payment_status === "paid") {
+      return res.status(400).json({
+        message: "Booking sudah dibayar",
+      });
     }
 
     const status = force_status === "failed" ? "failed" : "paid";
@@ -87,6 +105,75 @@ router.get("/", verifyToken, async (req, res) => {
     res.json({
       message: "Data pembayaran",
       data,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/:id", verifyToken, async (req, res) => {
+  try {
+    const payment = await Payment.findByPk(req.params.id, {
+      include: [{ model: Booking, as: "booking" }],
+    });
+
+    if (!payment) {
+      return res.status(404).json({ message: "Payment tidak ditemukan" });
+    }
+
+    if (!canAccessPayment(req.user, payment)) {
+      return res.status(403).json({ message: "Akses ditolak" });
+    }
+
+    res.json({
+      message: "Detail pembayaran",
+      data: payment,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.patch("/:id/refund", verifyToken, async (req, res) => {
+  try {
+    const payment = await Payment.findByPk(req.params.id, {
+      include: [{ model: Booking, as: "booking" }],
+    });
+
+    if (!payment) {
+      return res.status(404).json({ message: "Payment tidak ditemukan" });
+    }
+
+    if (req.user.role !== "admin" && Number(req.user.id) !== Number(payment.booking.provider_id)) {
+      return res.status(403).json({ message: "Akses ditolak" });
+    }
+
+    if (payment.status !== "paid") {
+      return res.status(400).json({
+        message: "Hanya pembayaran paid yang bisa direfund",
+      });
+    }
+
+    await payment.update({
+      status: "refunded",
+    });
+
+    await payment.booking.update({
+      payment_status: "refunded",
+      status:
+        payment.booking.status === "completed"
+          ? payment.booking.status
+          : "cancelled",
+      cancellation_reason:
+        req.body.reason || payment.booking.cancellation_reason || "Refund pembayaran",
+    });
+
+    res.json({
+      message: "Simulasi refund berhasil",
+      data: {
+        payment,
+        booking: payment.booking,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

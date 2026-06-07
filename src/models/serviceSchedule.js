@@ -23,13 +23,17 @@ const ServiceSchedule = sequelize.define(
       allowNull: false,
     },
 
-    day_of_week: {
-      type: DataTypes.INTEGER,
+    day: {
+      type: DataTypes.ENUM(
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+      ),
       allowNull: false,
-      validate: {
-        min: 0,
-        max: 6,
-      },
     },
 
     start_time: {
@@ -42,7 +46,7 @@ const ServiceSchedule = sequelize.define(
       allowNull: false,
     },
 
-    is_active: {
+    is_available: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },

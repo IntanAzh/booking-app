@@ -9,24 +9,43 @@ const { verifyToken, checkRole } = require("../middlewares/authMiddleware");
 const canManageSchedule = (user, providerId) =>
   user.role === "admin" || Number(user.id) === Number(providerId);
 
+const validDays = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+];
+
+const parseBoolean = (value) => value === true || value === "true" || value === 1;
+
 router.post(
   "/",
   verifyToken,
   checkRole(["admin", "provider"]),
   async (req, res) => {
     try {
-      const { provider_id, service_id, day_of_week, start_time, end_time } =
-        req.body;
+      const {
+        provider_id,
+        service_id,
+        day,
+        start_time,
+        end_time,
+        is_available,
+      } = req.body;
       const providerId = provider_id || req.user.id;
 
-      if (
-        !providerId ||
-        !service_id ||
-        day_of_week === undefined ||
-        !start_time ||
-        !end_time
-      ) {
+      if (!providerId || !service_id || !day || !start_time || !end_time) {
         return res.status(400).json({ message: "Data jadwal wajib diisi" });
+      }
+
+      if (!validDays.includes(day)) {
+        return res.status(400).json({
+          message:
+            "Day tidak valid. Gunakan monday, tuesday, wednesday, thursday, friday, saturday, atau sunday",
+        });
       }
 
       if (!canManageSchedule(req.user, providerId)) {
@@ -46,9 +65,11 @@ router.post(
       const schedule = await ServiceSchedule.create({
         provider_id: providerId,
         service_id,
-        day_of_week,
+        day,
         start_time,
         end_time,
+        is_available:
+          is_available === undefined ? true : parseBoolean(is_available),
       });
 
       res.status(201).json({
@@ -66,6 +87,10 @@ router.get("/", async (req, res) => {
     const where = {};
     if (req.query.provider_id) where.provider_id = req.query.provider_id;
     if (req.query.service_id) where.service_id = req.query.service_id;
+    if (req.query.day) where.day = req.query.day;
+    if (req.query.is_available !== undefined) {
+      where.is_available = req.query.is_available === "true";
+    }
 
     const schedules = await ServiceSchedule.findAll({
       where,
@@ -74,7 +99,7 @@ router.get("/", async (req, res) => {
         { model: Service, as: "service" },
       ],
       order: [
-        ["day_of_week", "ASC"],
+        ["day", "ASC"],
         ["start_time", "ASC"],
       ],
     });
@@ -104,7 +129,22 @@ router.put(
         return res.status(403).json({ message: "Akses ditolak" });
       }
 
-      await schedule.update(req.body);
+      const payload = { ...req.body };
+      if (payload.day && !validDays.includes(payload.day)) {
+        return res.status(400).json({
+          message:
+            "Day tidak valid. Gunakan monday, tuesday, wednesday, thursday, friday, saturday, atau sunday",
+        });
+      }
+
+      if (payload.is_available !== undefined) {
+        payload.is_available = parseBoolean(payload.is_available);
+      }
+
+      delete payload.day_of_week;
+      delete payload.is_active;
+
+      await schedule.update(payload);
 
       res.json({
         message: "Jadwal layanan berhasil diupdate",
