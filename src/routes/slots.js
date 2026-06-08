@@ -118,6 +118,41 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/available", async (req, res) => {
+  try {
+    const where = {
+      status: "available",
+    };
+
+    if (req.query.provider_id) where.provider_id = req.query.provider_id;
+    if (req.query.service_id) where.service_id = req.query.service_id;
+    if (req.query.slot_date) where.slot_date = req.query.slot_date;
+
+    const slots = await TimeSlot.findAll({
+      where,
+      include: [
+        { model: User, as: "provider", attributes: ["id", "name", "email"] },
+        { model: Service, as: "service" },
+      ],
+      order: [["start_time", "ASC"]],
+    });
+
+    const slotsWithAvailability = await Promise.all(
+      slots.map(withSlotAvailability),
+    );
+    const availableSlots = slotsWithAvailability.filter(
+      (slot) => !slot.is_full && slot.remaining_capacity > 0,
+    );
+
+    res.json({
+      message: "Data slot waktu tersedia",
+      data: availableSlots,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.put(
   "/:id",
   verifyToken,

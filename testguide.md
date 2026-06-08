@@ -690,6 +690,26 @@ Filter opsional:
 {{base_url}}/api/slots?status=available
 ```
 
+### List slot tersedia
+
+Method: `GET`
+
+URL:
+
+```text
+{{base_url}}/api/slots/available
+```
+
+Filter opsional:
+
+```text
+{{base_url}}/api/slots/available?provider_id=2
+{{base_url}}/api/slots/available?service_id=1
+{{base_url}}/api/slots/available?slot_date=2026-05-18
+```
+
+Endpoint ini hanya mengembalikan slot dengan `status = available`, belum penuh, dan `remaining_capacity > 0`.
+
 ### Update slot
 
 Role: `admin` atau provider pemilik slot

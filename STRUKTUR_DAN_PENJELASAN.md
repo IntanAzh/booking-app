@@ -128,6 +128,7 @@ Create dan update service memvalidasi relasi wajib:
 - `DELETE /api/schedules/:id`
 - `POST /api/slots`
 - `GET /api/slots`
+- `GET /api/slots/available`
 - `PUT /api/slots/:id`
 - `DELETE /api/slots/:id`
 
