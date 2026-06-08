@@ -1,156 +1,180 @@
 const express = require("express");
 const router = express.Router();
 
+const { Sequelize } = require("sequelize");
 const Booking = require("../models/booking");
 const Service = require("../models/service");
 const User = require("../models/user");
-
 const { verifyToken, checkRole } = require("../middlewares/authMiddleware");
 
-const { Sequelize } = require("sequelize");
+const getScopes = (user) => ({
+  bookingScope: user.role === "provider" ? { provider_id: user.id } : {},
+  serviceScope: user.role === "provider" ? { provider_id: user.id } : {},
+});
 
-// Dashboard statistik users, services, bookings, revenue, dll
+const getBookingStats = async (bookingScope = {}) => {
+  const [total, pending, confirmed, completed, cancelled] = await Promise.all([
+    Booking.count({ where: bookingScope }),
+    Booking.count({ where: { ...bookingScope, status: "pending" } }),
+    Booking.count({ where: { ...bookingScope, status: "confirmed" } }),
+    Booking.count({ where: { ...bookingScope, status: "completed" } }),
+    Booking.count({ where: { ...bookingScope, status: "cancelled" } }),
+  ]);
 
-router.get("/", verifyToken, checkRole(["admin", "provider"]), async (req, res) => {
-  try {
-    const bookingScope =
-      req.user.role === "provider" ? { provider_id: req.user.id } : {};
-    const serviceScope =
-      req.user.role === "provider" ? { provider_id: req.user.id } : {};
+  return {
+    total_bookings: total,
+    pending,
+    confirmed,
+    completed,
+    cancelled,
+  };
+};
 
-    // total users
-    const totalUsers = req.user.role === "admin" ? await User.count() : null;
-
-    const totalCustomers =
-      req.user.role === "admin"
-        ? await User.count({
-            where: {
-              role: "customer",
-            },
-          })
-        : null;
-
-    const totalProviders =
-      req.user.role === "admin"
-        ? await User.count({
-            where: {
-              role: "provider",
-            },
-          })
-        : null;
-
-    // total services
-    const totalServices = await Service.count({
-      where: serviceScope,
-    });
-
-    // total bookings
-    const totalBookings = await Booking.count({
-      where: bookingScope,
-    });
-
-    // booking status breakdown
-    const pendingBookings = await Booking.count({
-      where: {
-        ...bookingScope,
-        status: "pending",
-      },
-    });
-
-    const confirmedBookings = await Booking.count({
-      where: {
-        ...bookingScope,
-        status: "confirmed",
-      },
-    });
-
-    const completedBookings = await Booking.count({
-      where: {
-        ...bookingScope,
-        status: "completed",
-      },
-    });
-
-    const cancelledBookings = await Booking.count({
-      where: {
-        ...bookingScope,
-        status: "cancelled",
-      },
-    });
-
-    // total revenue hitung booking completed yang sudah paid.
-    const revenueResult = await Booking.sum("total_price", {
+const getRevenueStats = async (bookingScope = {}) => {
+  const totalRevenue =
+    (await Booking.sum("total_price", {
       where: {
         ...bookingScope,
         status: "completed",
         payment_status: "paid",
       },
-    });
+    })) || 0;
 
-    const totalRevenue = revenueResult || 0;
+  const paidBookingCount = await Booking.count({
+    where: {
+      ...bookingScope,
+      status: "completed",
+      payment_status: "paid",
+    },
+  });
 
-    // layanan paling banyak dipesan (top 5)
-    const topServices = await Booking.findAll({
-      attributes: [
-        "service_id",
-        [Sequelize.fn("COUNT", Sequelize.col("service_id")), "total_bookings"],
-        [Sequelize.fn("SUM", Sequelize.col("total_price")), "total_revenue"],
-      ],
+  return {
+    total_revenue: totalRevenue,
+    paid_completed_bookings: paidBookingCount,
+  };
+};
 
-      include: [
-        {
-          model: Service,
-          as: "service",
-          attributes: ["id", "name", "price"],
-        },
-      ],
+const getTopServices = async (bookingScope = {}) =>
+  Booking.findAll({
+    attributes: [
+      "service_id",
+      [Sequelize.fn("COUNT", Sequelize.col("Booking.service_id")), "total_bookings"],
+      [Sequelize.fn("SUM", Sequelize.col("Booking.total_price")), "total_revenue"],
+    ],
+    include: [
+      {
+        model: Service,
+        as: "service",
+        attributes: ["id", "name", "price"],
+      },
+    ],
+    where: bookingScope,
+    group: ["Booking.service_id", "service.id", "service.name", "service.price"],
+    order: [[Sequelize.literal("total_bookings"), "DESC"]],
+    limit: 5,
+  });
 
-      where: bookingScope,
+const buildDashboard = async (user) => {
+  const { bookingScope, serviceScope } = getScopes(user);
 
-      group: ["Booking.service_id", "service.id", "service.name", "service.price"],
+  const [totalServices, bookingStats, revenueStats, topServices] =
+    await Promise.all([
+      Service.count({ where: serviceScope }),
+      getBookingStats(bookingScope),
+      getRevenueStats(bookingScope),
+      getTopServices(bookingScope),
+    ]);
 
-      order: [[Sequelize.literal("total_bookings"), "DESC"]],
+  const data = {
+    services: {
+      total_services: totalServices,
+    },
+    bookings: bookingStats,
+    revenue: revenueStats,
+    top_services: topServices,
+  };
 
-      limit: 5,
-    });
+  if (user.role === "admin") {
+    const [totalUsers, totalCustomers, totalProviders] = await Promise.all([
+      User.count(),
+      User.count({ where: { role: "customer" } }),
+      User.count({ where: { role: "provider" } }),
+    ]);
 
-    // response dashboard
+    data.users = {
+      total_users: totalUsers,
+      total_customers: totalCustomers,
+      total_providers: totalProviders,
+    };
+  }
+
+  return data;
+};
+
+router.get("/", verifyToken, checkRole(["admin", "provider"]), async (req, res) => {
+  try {
+    const data = await buildDashboard(req.user);
+
     res.json({
       message: req.user.role === "admin" ? "Dashboard Admin" : "Dashboard Provider",
-
-      data: {
-        users:
-          req.user.role === "admin"
-            ? {
-                total_users: totalUsers,
-                total_customers: totalCustomers,
-                total_providers: totalProviders,
-              }
-            : undefined,
-
-        services: {
-          total_services: totalServices,
-        },
-
-        bookings: {
-          total_bookings: totalBookings,
-          pending: pendingBookings,
-          confirmed: confirmedBookings,
-          completed: completedBookings,
-          cancelled: cancelledBookings,
-        },
-
-        revenue: {
-          total_revenue: totalRevenue,
-        },
-
-        top_services: topServices,
-      },
+      data,
     });
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/admin", verifyToken, checkRole(["admin"]), async (req, res) => {
+  try {
+    const data = await buildDashboard(req.user);
+
+    res.json({
+      message: "Dashboard Admin",
+      data,
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/provider", verifyToken, checkRole(["provider"]), async (req, res) => {
+  try {
+    const data = await buildDashboard(req.user);
+
+    res.json({
+      message: "Dashboard Provider",
+      data,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/revenue", verifyToken, checkRole(["admin", "provider"]), async (req, res) => {
+  try {
+    const { bookingScope } = getScopes(req.user);
+    const revenue = await getRevenueStats(bookingScope);
+
+    res.json({
+      message: "Dashboard Revenue",
+      data: revenue,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/bookings", verifyToken, checkRole(["admin", "provider"]), async (req, res) => {
+  try {
+    const { bookingScope } = getScopes(req.user);
+    const bookings = await getBookingStats(bookingScope);
+
+    res.json({
+      message: "Dashboard Bookings",
+      data: bookings,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

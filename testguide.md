@@ -1292,7 +1292,7 @@ Method: `GET`
 URL:
 
 ```text
-{{base_url}}/api/dashboard
+{{base_url}}/api/dashboard/admin
 ```
 
 Headers:
@@ -1321,7 +1321,7 @@ Method: `GET`
 URL:
 
 ```text
-{{base_url}}/api/dashboard
+{{base_url}}/api/dashboard/provider
 ```
 
 Headers:
@@ -1331,6 +1331,56 @@ Authorization: Bearer {{provider_token}}
 ```
 
 Response berisi statistik booking, service, revenue, dan top services milik provider login.
+
+### Dashboard revenue
+
+Role: `admin` atau `provider`
+
+Method: `GET`
+
+URL:
+
+```text
+{{base_url}}/api/dashboard/revenue
+```
+
+Headers:
+
+```text
+Authorization: Bearer {{admin_token}}
+```
+
+Jika memakai `provider_token`, revenue otomatis difilter untuk provider tersebut.
+
+### Dashboard bookings
+
+Role: `admin` atau `provider`
+
+Method: `GET`
+
+URL:
+
+```text
+{{base_url}}/api/dashboard/bookings
+```
+
+Headers:
+
+```text
+Authorization: Bearer {{admin_token}}
+```
+
+Jika memakai `provider_token`, statistik booking otomatis difilter untuk provider tersebut.
+
+### Dashboard lama
+
+Endpoint lama masih tersedia:
+
+```text
+{{base_url}}/api/dashboard
+```
+
+Role `admin` akan mendapat dashboard admin, sedangkan role `provider` akan mendapat dashboard provider.
 
 ## 11. Urutan testing yang disarankan
 

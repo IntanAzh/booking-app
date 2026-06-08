@@ -155,6 +155,10 @@ Create dan update service memvalidasi relasi wajib:
 - `POST /api/pricing/rules`
 - `PUT /api/pricing/rules/:id`
 - `GET /api/dashboard`
+- `GET /api/dashboard/admin`
+- `GET /api/dashboard/provider`
+- `GET /api/dashboard/revenue`
+- `GET /api/dashboard/bookings`
 
 ## Alur booking
 
