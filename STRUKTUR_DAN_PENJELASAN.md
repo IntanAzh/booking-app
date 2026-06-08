@@ -123,6 +123,7 @@ Create dan update service memvalidasi relasi wajib:
 
 - `POST /api/schedules`
 - `GET /api/schedules`
+- `GET /api/schedules/:id`
 - `PUT /api/schedules/:id`
 - `DELETE /api/schedules/:id`
 - `POST /api/slots`
@@ -206,6 +207,7 @@ Endpoint CRUD jadwal layanan:
 ```text
 POST   /api/schedules
 GET    /api/schedules
+GET    /api/schedules/:id
 PUT    /api/schedules/:id
 DELETE /api/schedules/:id
 ```

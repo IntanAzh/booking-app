@@ -113,6 +113,28 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/:id", async (req, res) => {
+  try {
+    const schedule = await ServiceSchedule.findByPk(req.params.id, {
+      include: [
+        { model: User, as: "provider", attributes: ["id", "name", "email"] },
+        { model: Service, as: "service" },
+      ],
+    });
+
+    if (!schedule) {
+      return res.status(404).json({ message: "Jadwal tidak ditemukan" });
+    }
+
+    res.json({
+      message: "Detail jadwal layanan",
+      data: schedule,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.put(
   "/:id",
   verifyToken,

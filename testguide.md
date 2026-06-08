@@ -579,6 +579,16 @@ Filter opsional:
 {{base_url}}/api/schedules?is_available=true
 ```
 
+### Detail schedule
+
+Method: `GET`
+
+URL:
+
+```text
+{{base_url}}/api/schedules/1
+```
+
 ### Update schedule
 
 Role: `admin` atau provider pemilik jadwal
