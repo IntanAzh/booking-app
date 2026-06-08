@@ -24,6 +24,7 @@ Aplikasi ini adalah backend booking layanan berbasis Express, Sequelize, MySQL, 
 booking-app/
   .dockerignore
   .env.docker.example
+  .env.ngrok.example
   bin/
     www
   database/
@@ -31,6 +32,7 @@ booking-app/
   Dockerfile
   docker-compose.yml
   DOCKER_GUIDE.md
+  NGROK_LOCAL_GUIDE.md
   postman/
   public/
     stylesheets/style.css

@@ -7,7 +7,7 @@ services:
       MYSQL_DATABASE: booking_db
       MYSQL_ROOT_PASSWORD: booking_password
     ports:
-      - "3307:3306"
+      - "3308:3306"
     volumes:
       - booking_mysql_data:/var/lib/mysql
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
@@ -37,6 +37,23 @@ services:
       DB_SYNC_ALTER: "false"
     ports:
       - "3000:3000"
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: booking_ngrok
+    restart: unless-stopped
+    profiles:
+      - ngrok
+    depends_on:
+      - api
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+    command:
+      - http
+      - http://api:3000
+      - --log=stdout
+    ports:
+      - "4040:4040"
 
 volumes:
   booking_mysql_data:
