@@ -82,6 +82,165 @@ const syncSlotStatus = async (slotId, transaction) => {
   return slot;
 };
 
+const checkAvailability = async (payload) => {
+  const { service_id, provider_id, slot_id, start_time, end_time } = payload;
+
+  if (!service_id || (!slot_id && (!provider_id || !start_time))) {
+    const error = new Error(
+      "service_id wajib diisi. Gunakan slot_id atau provider_id dan start_time.",
+    );
+    error.status = 400;
+    throw error;
+  }
+
+  const service = await Service.findByPk(service_id);
+
+  if (!service || !service.is_active) {
+    const error = new Error("Service tidak ditemukan atau tidak aktif");
+    error.status = 404;
+    throw error;
+  }
+
+  let slot = null;
+  let providerId = provider_id || service.provider_id;
+  let startTime = start_time ? new Date(start_time) : null;
+  let endTime = end_time ? new Date(end_time) : null;
+  let activeBookingCount = null;
+  let remainingCapacity = null;
+
+  if (slot_id) {
+    slot = await TimeSlot.findByPk(slot_id);
+
+    if (!slot) {
+      const error = new Error("Slot waktu tidak ditemukan");
+      error.status = 404;
+      throw error;
+    }
+
+    if (Number(slot.service_id) !== Number(service_id)) {
+      const error = new Error("Slot waktu tidak sesuai dengan service yang dipilih");
+      error.status = 400;
+      throw error;
+    }
+
+    providerId = slot.provider_id;
+    startTime = new Date(slot.start_time);
+    endTime = new Date(slot.end_time);
+    activeBookingCount = await getSlotBookingCount(slot.id);
+    remainingCapacity = Math.max(Number(slot.capacity) - activeBookingCount, 0);
+
+    if (slot.status === "blocked") {
+      return {
+        available: false,
+        reason: "Slot waktu diblokir",
+        slot_id: slot.id,
+        capacity: slot.capacity,
+        active_bookings: activeBookingCount,
+        remaining_capacity: remainingCapacity,
+      };
+    }
+
+    if (activeBookingCount >= Number(slot.capacity)) {
+      return {
+        available: false,
+        reason: "Slot waktu sudah penuh",
+        slot_id: slot.id,
+        capacity: slot.capacity,
+        active_bookings: activeBookingCount,
+        remaining_capacity: remainingCapacity,
+      };
+    }
+  }
+
+  if (!providerId) {
+    const error = new Error("provider_id wajib diisi jika service belum punya provider");
+    error.status = 400;
+    throw error;
+  }
+
+  const provider = await User.findByPk(providerId);
+  if (!provider || provider.role !== "provider") {
+    const error = new Error("Provider tidak ditemukan");
+    error.status = 404;
+    throw error;
+  }
+
+  if (!endTime) {
+    endTime = addMinutes(startTime, service.duration);
+  }
+
+  if (!startTime || Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) {
+    const error = new Error("Format waktu tidak valid");
+    error.status = 400;
+    throw error;
+  }
+
+  if (endTime <= startTime) {
+    const error = new Error("end_time harus lebih besar dari start_time");
+    error.status = 400;
+    throw error;
+  }
+
+  const bufferEnd = addMinutes(endTime, 15);
+  const overlapWhere = {
+    service_id,
+    provider_id: providerId,
+    status: {
+      [Op.in]: ACTIVE_BOOKING_STATUSES,
+    },
+    start_time: {
+      [Op.lt]: bufferEnd,
+    },
+    buffer_end_time: {
+      [Op.gt]: startTime,
+    },
+  };
+
+  if (slot) {
+    overlapWhere.slot_id = {
+      [Op.ne]: slot.id,
+    };
+  }
+
+  const overlappingBooking = await Booking.findOne({
+    where: overlapWhere,
+  });
+
+  if (overlappingBooking) {
+    return {
+      available: false,
+      reason: slot
+        ? "Jam booking bentrok dengan slot lain"
+        : "Slot waktu bentrok dengan booking lain",
+      conflict_booking_id: overlappingBooking.id,
+      start_time: startTime,
+      end_time: endTime,
+      buffer_end_time: bufferEnd,
+    };
+  }
+
+  const pricing = await calculateDynamicPrice({
+    service,
+    providerId,
+    startTime,
+  });
+
+  return {
+    available: true,
+    reason: "Slot tersedia",
+    service_id: Number(service_id),
+    provider_id: Number(providerId),
+    slot_id: slot ? slot.id : null,
+    start_time: startTime,
+    end_time: endTime,
+    buffer_end_time: bufferEnd,
+    capacity: slot ? slot.capacity : null,
+    active_bookings: activeBookingCount,
+    remaining_capacity: remainingCapacity,
+    pricing,
+  };
+};
+
 router.post("/", verifyToken, checkRole(["customer"]), async (req, res) => {
   const transaction = await sequelize.transaction();
 
@@ -308,6 +467,36 @@ router.get("/", verifyToken, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
+      message: error.message,
+    });
+  }
+});
+
+router.get("/check-availability", async (req, res) => {
+  try {
+    const availability = await checkAvailability(req.query);
+
+    res.json({
+      message: "Hasil pengecekan ketersediaan booking",
+      data: availability,
+    });
+  } catch (error) {
+    res.status(error.status || 500).json({
+      message: error.message,
+    });
+  }
+});
+
+router.post("/check-availability", async (req, res) => {
+  try {
+    const availability = await checkAvailability(req.body);
+
+    res.json({
+      message: "Hasil pengecekan ketersediaan booking",
+      data: availability,
+    });
+  } catch (error) {
+    res.status(error.status || 500).json({
       message: error.message,
     });
   }

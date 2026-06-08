@@ -724,6 +724,77 @@ URL:
 
 ## 8. Booking
 
+### Check availability memakai slot
+
+Method: `POST`
+
+URL:
+
+```text
+{{base_url}}/api/bookings/check-availability
+```
+
+Body:
+
+```json
+{
+  "service_id": 1,
+  "slot_id": 1
+}
+```
+
+Response jika tersedia:
+
+```json
+{
+  "message": "Hasil pengecekan ketersediaan booking",
+  "data": {
+    "available": true,
+    "reason": "Slot tersedia",
+    "service_id": 1,
+    "provider_id": 2,
+    "slot_id": 1,
+    "capacity": 1,
+    "active_bookings": 0,
+    "remaining_capacity": 1
+  }
+}
+```
+
+Response jika penuh:
+
+```json
+{
+  "message": "Hasil pengecekan ketersediaan booking",
+  "data": {
+    "available": false,
+    "reason": "Slot waktu sudah penuh",
+    "slot_id": 1,
+    "capacity": 1,
+    "active_bookings": 1,
+    "remaining_capacity": 0
+  }
+}
+```
+
+### Check availability tanpa slot
+
+Method: `GET`
+
+URL:
+
+```text
+{{base_url}}/api/bookings/check-availability?service_id=1&provider_id=2&start_time=2026-05-18T11:00:00.000Z
+```
+
+Jika `end_time` tidak dikirim, sistem memakai `duration` dari service.
+
+Dengan `end_time` manual:
+
+```text
+{{base_url}}/api/bookings/check-availability?service_id=1&provider_id=2&start_time=2026-05-18T11:00:00.000Z&end_time=2026-05-18T12:00:00.000Z
+```
+
 ### Create booking memakai slot
 
 Role: `customer`

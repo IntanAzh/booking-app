@@ -135,6 +135,8 @@ Create dan update service memvalidasi relasi wajib:
 
 - `POST /api/bookings`
 - `GET /api/bookings`
+- `GET /api/bookings/check-availability`
+- `POST /api/bookings/check-availability`
 - `GET /api/bookings/:id`
 - `PUT /api/bookings/:id`
 - `PATCH /api/bookings/:id/cancel`
