@@ -153,3 +153,16 @@ CREATE TABLE IF NOT EXISTS payments (
   KEY payments_booking_id_idx (booking_id),
   CONSTRAINT payments_booking_id_fk FOREIGN KEY (booking_id) REFERENCES bookings(id)
 );
+
+CREATE TABLE IF NOT EXISTS pricing_rules (
+  id INT NOT NULL AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  rule_type ENUM('weekend', 'peak_hour', 'demand') NOT NULL,
+  adjustment_type ENUM('percentage', 'fixed') DEFAULT 'percentage',
+  adjustment_value DECIMAL(10, 2) NOT NULL,
+  conditions JSON NULL,
+  is_active TINYINT(1) DEFAULT 1,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+);

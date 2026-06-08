@@ -14,6 +14,7 @@ const providerRoutes = require("./routes/providers");
 const scheduleRoutes = require("./routes/schedules");
 const slotRoutes = require("./routes/slots");
 const paymentRoutes = require("./routes/payments");
+const pricingRoutes = require("./routes/pricing");
 
 // import database connection
 const sequelize = require("./config/database");
@@ -26,6 +27,7 @@ require("./models/serviceSchedule");
 require("./models/timeSlot");
 require("./models/booking");
 require("./models/payment");
+require("./models/pricingRule");
 
 // middleware
 app.use(express.json());
@@ -44,6 +46,7 @@ app.use("/api/schedules", scheduleRoutes);
 app.use("/api/slots", slotRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/pricing", pricingRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 const syncOptions = process.env.DB_SYNC_ALTER === "true" ? { alter: true } : {};

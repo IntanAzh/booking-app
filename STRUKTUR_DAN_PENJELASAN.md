@@ -76,6 +76,7 @@ booking-app/
 - `src/routes/schedules.js`: CRUD jadwal layanan.
 - `src/routes/slots.js`: CRUD slot waktu.
 - `src/routes/payments.js`: simulasi pembayaran, detail pembayaran, list pembayaran, dan refund.
+- `src/routes/pricing.js`: kalkulasi dynamic pricing dan CRUD pricing rules.
 - `src/routes/bookings.js`: booking, histori, validasi overlap slot, dynamic pricing, update status, dan cancel.
 - `src/routes/dashboard.js`: statistik booking dan revenue untuk admin/provider.
 - `src/utils/pricing.js`: logika dynamic pricing.
@@ -149,6 +150,10 @@ Create dan update service memvalidasi relasi wajib:
 - `GET /api/payments`
 - `GET /api/payments/:id`
 - `PATCH /api/payments/:id/refund`
+- `POST /api/pricing/calculate`
+- `GET /api/pricing/rules`
+- `POST /api/pricing/rules`
+- `PUT /api/pricing/rules/:id`
 - `GET /api/dashboard`
 
 ## Alur booking
@@ -217,13 +222,12 @@ DELETE /api/schedules/:id
 
 ## Dynamic pricing
 
-Pricing dihitung di `src/utils/pricing.js`:
+Pricing dihitung di `src/utils/pricing.js` dan bisa dikelola lewat `/api/pricing/rules`.
 
 - Base price dari `services.price`.
-- Weekend surcharge 20% untuk Sabtu dan Minggu.
-- Peak hour surcharge 15% untuk jam 17:00 sampai sebelum 21:00.
-- Demand surcharge 10% jika booking aktif di hari yang sama minimal 5.
-- High demand surcharge 20% jika booking aktif di hari yang sama minimal 10.
+- Jika table `pricing_rules` masih kosong, sistem memakai rule default weekend, peak hour, dan demand.
+- Admin bisa membuat rule baru dengan `POST /api/pricing/rules`.
+- Admin bisa mengubah rule dengan `PUT /api/pricing/rules/:id`.
 
 Response booking mengembalikan `pricing.breakdown` agar perhitungan bisa dilihat.
 

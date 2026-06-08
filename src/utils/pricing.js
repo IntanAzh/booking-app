@@ -1,7 +1,81 @@
 const { Op } = require("sequelize");
 const Booking = require("../models/booking");
+const PricingRule = require("../models/pricingRule");
 
 const toDateOnly = (date) => date.toISOString().slice(0, 10);
+
+const defaultPricingRules = [
+  {
+    id: null,
+    name: "Weekend surcharge",
+    rule_type: "weekend",
+    adjustment_type: "percentage",
+    adjustment_value: 20,
+    conditions: { days: [0, 6] },
+    is_active: true,
+  },
+  {
+    id: null,
+    name: "Peak hour surcharge",
+    rule_type: "peak_hour",
+    adjustment_type: "percentage",
+    adjustment_value: 15,
+    conditions: { start_hour: 17, end_hour: 21 },
+    is_active: true,
+  },
+  {
+    id: null,
+    name: "Demand surcharge",
+    rule_type: "demand",
+    adjustment_type: "percentage",
+    adjustment_value: 10,
+    conditions: { min_bookings: 5, max_bookings: 9 },
+    is_active: true,
+  },
+  {
+    id: null,
+    name: "High demand surcharge",
+    rule_type: "demand",
+    adjustment_type: "percentage",
+    adjustment_value: 20,
+    conditions: { min_bookings: 10 },
+    is_active: true,
+  },
+];
+
+const normalizeRule = (rule) => {
+  const plainRule = typeof rule.toJSON === "function" ? rule.toJSON() : rule;
+
+  return {
+    ...plainRule,
+    adjustment_value: Number(plainRule.adjustment_value),
+    conditions: plainRule.conditions || {},
+  };
+};
+
+const getActivePricingRules = async () => {
+  const rules = await PricingRule.findAll({
+    where: { is_active: true },
+    order: [
+      ["rule_type", "ASC"],
+      ["adjustment_value", "ASC"],
+    ],
+  });
+
+  if (rules.length === 0) {
+    return defaultPricingRules;
+  }
+
+  return rules.map(normalizeRule);
+};
+
+const applyAdjustment = (currentPrice, basePrice, rule) => {
+  if (rule.adjustment_type === "fixed") {
+    return currentPrice + rule.adjustment_value;
+  }
+
+  return currentPrice + basePrice * (rule.adjustment_value / 100);
+};
 
 const calculateDynamicPrice = async ({ service, providerId, startTime }) => {
   const bookingDate = new Date(startTime);
@@ -14,27 +88,8 @@ const calculateDynamicPrice = async ({ service, providerId, startTime }) => {
     },
   ];
 
-  let multiplier = 1;
   const day = bookingDate.getDay();
   const hour = bookingDate.getHours();
-
-  if (day === 0 || day === 6) {
-    multiplier += 0.2;
-    breakdown.push({
-      label: "weekend_surcharge",
-      type: "percentage",
-      amount: 20,
-    });
-  }
-
-  if (hour >= 17 && hour < 21) {
-    multiplier += 0.15;
-    breakdown.push({
-      label: "peak_hour_surcharge",
-      type: "percentage",
-      amount: 15,
-    });
-  }
 
   const dateOnly = toDateOnly(bookingDate);
   const demandCount = await Booking.count({
@@ -51,27 +106,51 @@ const calculateDynamicPrice = async ({ service, providerId, startTime }) => {
     },
   });
 
-  if (demandCount >= 10) {
-    multiplier += 0.2;
-    breakdown.push({
-      label: "high_demand_surcharge",
-      type: "percentage",
-      amount: 20,
-    });
-  } else if (demandCount >= 5) {
-    multiplier += 0.1;
-    breakdown.push({
-      label: "demand_surcharge",
-      type: "percentage",
-      amount: 10,
-    });
-  }
+  const rules = await getActivePricingRules();
+  let totalPrice = basePrice;
 
-  const totalPrice = Number((basePrice * multiplier).toFixed(2));
+  for (const rule of rules) {
+    let matched = false;
+    const conditions = rule.conditions || {};
+
+    if (rule.rule_type === "weekend") {
+      const days = conditions.days || [0, 6];
+      matched = days.map(Number).includes(day);
+    }
+
+    if (rule.rule_type === "peak_hour") {
+      const startHour = Number(conditions.start_hour ?? 17);
+      const endHour = Number(conditions.end_hour ?? 21);
+      matched = hour >= startHour && hour < endHour;
+    }
+
+    if (rule.rule_type === "demand") {
+      const minBookings = Number(conditions.min_bookings ?? 5);
+      const maxBookings =
+        conditions.max_bookings === undefined
+          ? null
+          : Number(conditions.max_bookings);
+      matched =
+        demandCount >= minBookings &&
+        (maxBookings === null || demandCount <= maxBookings);
+    }
+
+    if (matched) {
+      totalPrice = applyAdjustment(totalPrice, basePrice, rule);
+      breakdown.push({
+        rule_id: rule.id,
+        label: rule.name,
+        rule_type: rule.rule_type,
+        type: rule.adjustment_type,
+        amount: rule.adjustment_value,
+        conditions,
+      });
+    }
+  }
 
   return {
     base_price: basePrice,
-    total_price: totalPrice,
+    total_price: Number(totalPrice.toFixed(2)),
     demand_count: demandCount,
     breakdown,
   };
@@ -79,4 +158,6 @@ const calculateDynamicPrice = async ({ service, providerId, startTime }) => {
 
 module.exports = {
   calculateDynamicPrice,
+  defaultPricingRules,
+  getActivePricingRules,
 };

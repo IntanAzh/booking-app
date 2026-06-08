@@ -744,6 +744,154 @@ URL:
 
 ## 8. Booking
 
+## 8A. Pricing
+
+### Calculate pricing
+
+Method: `POST`
+
+URL:
+
+```text
+{{base_url}}/api/pricing/calculate
+```
+
+Body:
+
+```json
+{
+  "service_id": 1,
+  "provider_id": 2,
+  "start_time": "2026-05-18T17:00:00.000Z"
+}
+```
+
+Response berisi `base_price`, `total_price`, `demand_count`, dan `breakdown`.
+
+### List pricing rules
+
+Role: `admin`
+
+Method: `GET`
+
+URL:
+
+```text
+{{base_url}}/api/pricing/rules
+```
+
+Headers:
+
+```text
+Authorization: Bearer {{admin_token}}
+```
+
+Jika table `pricing_rules` kosong, response tetap menampilkan `defaults_used_when_empty`.
+
+### Create pricing rule
+
+Role: `admin`
+
+Method: `POST`
+
+URL:
+
+```text
+{{base_url}}/api/pricing/rules
+```
+
+Headers:
+
+```text
+Authorization: Bearer {{admin_token}}
+```
+
+Contoh weekend:
+
+```json
+{
+  "name": "Weekend surcharge",
+  "rule_type": "weekend",
+  "adjustment_type": "percentage",
+  "adjustment_value": 20,
+  "conditions": {
+    "days": [0, 6]
+  },
+  "is_active": true
+}
+```
+
+Contoh peak hour:
+
+```json
+{
+  "name": "Peak hour 17-21",
+  "rule_type": "peak_hour",
+  "adjustment_type": "percentage",
+  "adjustment_value": 15,
+  "conditions": {
+    "start_hour": 17,
+    "end_hour": 21
+  },
+  "is_active": true
+}
+```
+
+Contoh demand:
+
+```json
+{
+  "name": "Demand minimal 5 booking",
+  "rule_type": "demand",
+  "adjustment_type": "percentage",
+  "adjustment_value": 10,
+  "conditions": {
+    "min_bookings": 5,
+    "max_bookings": 9
+  },
+  "is_active": true
+}
+```
+
+`rule_type` yang valid:
+
+```text
+weekend, peak_hour, demand
+```
+
+`adjustment_type` yang valid:
+
+```text
+percentage, fixed
+```
+
+### Update pricing rule
+
+Role: `admin`
+
+Method: `PUT`
+
+URL:
+
+```text
+{{base_url}}/api/pricing/rules/1
+```
+
+Headers:
+
+```text
+Authorization: Bearer {{admin_token}}
+```
+
+Body:
+
+```json
+{
+  "adjustment_value": 25,
+  "is_active": true
+}
+```
+
 ### Check availability memakai slot
 
 Method: `POST`
