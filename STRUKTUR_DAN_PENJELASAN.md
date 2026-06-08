@@ -22,10 +22,15 @@ Aplikasi ini adalah backend booking layanan berbasis Express, Sequelize, MySQL, 
 
 ```text
 booking-app/
+  .dockerignore
+  .env.docker.example
   bin/
     www
   database/
     schema.sql
+  Dockerfile
+  docker-compose.yml
+  DOCKER_GUIDE.md
   postman/
   public/
     stylesheets/style.css
@@ -51,7 +56,9 @@ booking-app/
     routes/
       auth.js
       bookings.js
+      customers.js
       dashboard.js
+      myBookings.js
       payments.js
       posts.js
       providers.js
@@ -78,6 +85,8 @@ booking-app/
 - `src/routes/payments.js`: simulasi pembayaran, detail pembayaran, list pembayaran, dan refund.
 - `src/routes/pricing.js`: kalkulasi dynamic pricing dan CRUD pricing rules.
 - `src/routes/bookings.js`: booking, histori, validasi overlap slot, dynamic pricing, update status, dan cancel.
+- `src/routes/customers.js`: histori booking customer berdasarkan customer ID.
+- `src/routes/myBookings.js`: booking milik user yang sedang login.
 - `src/routes/dashboard.js`: statistik booking dan revenue untuk admin/provider.
 - `src/utils/pricing.js`: logika dynamic pricing.
 - `database/schema.sql`: struktur database lengkap sesuai model baru.
@@ -143,6 +152,8 @@ Create dan update service memvalidasi relasi wajib:
 - `PUT /api/bookings/:id`
 - `PATCH /api/bookings/:id/cancel`
 - `DELETE /api/bookings/:id`
+- `GET /api/customers/:id/booking-history`
+- `GET /api/my-bookings`
 
 ### Payment dan dashboard
 

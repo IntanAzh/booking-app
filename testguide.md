@@ -1088,6 +1088,57 @@ Filter status:
 {{base_url}}/api/bookings?status=cancelled
 ```
 
+### My bookings
+
+Role: `customer`, `provider`, atau `admin`
+
+Method: `GET`
+
+URL:
+
+```text
+{{base_url}}/api/my-bookings
+```
+
+Headers:
+
+```text
+Authorization: Bearer {{customer_token}}
+```
+
+Catatan:
+
+- Jika token customer, response berisi booking customer tersebut.
+- Jika token provider, response berisi booking yang masuk ke provider tersebut.
+- Jika token admin, response berisi semua booking. Admin juga bisa filter `customer_id` dan `status`.
+
+Filter opsional:
+
+```text
+{{base_url}}/api/my-bookings?status=pending
+{{base_url}}/api/my-bookings?customer_id=1
+```
+
+### Customer booking history
+
+Role: `admin` atau customer pemilik data
+
+Method: `GET`
+
+URL:
+
+```text
+{{base_url}}/api/customers/1/booking-history
+```
+
+Headers:
+
+```text
+Authorization: Bearer {{admin_token}}
+```
+
+Jika memakai token customer, ID di URL harus sama dengan ID customer dari token.
+
 ### Detail booking
 
 Method: `GET`

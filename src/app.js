@@ -15,6 +15,8 @@ const scheduleRoutes = require("./routes/schedules");
 const slotRoutes = require("./routes/slots");
 const paymentRoutes = require("./routes/payments");
 const pricingRoutes = require("./routes/pricing");
+const customerRoutes = require("./routes/customers");
+const myBookingRoutes = require("./routes/myBookings");
 
 // import database connection
 const sequelize = require("./config/database");
@@ -45,6 +47,8 @@ app.use("/api/providers", providerRoutes);
 app.use("/api/schedules", scheduleRoutes);
 app.use("/api/slots", slotRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/customers", customerRoutes);
+app.use("/api/my-bookings", myBookingRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/pricing", pricingRoutes);
 app.use("/api/dashboard", dashboardRoutes);
@@ -58,8 +62,10 @@ sequelize
     console.log("Database connected");
 
     // jalankan server setelah database berhasil terkoneksi
-    app.listen(3000, () => {
-      console.log("Server running on port 3000");
+    const port = process.env.PORT || 3000;
+
+    app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
     });
   })
   .catch((err) => {
