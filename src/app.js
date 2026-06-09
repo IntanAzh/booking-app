@@ -2,6 +2,8 @@ require("dotenv").config();
 
 const express = require("express");
 const app = express();
+const swaggerUi = require("swagger-ui-express");
+const swaggerDocument = require("./config/swagger");
 
 // import routes
 const authRoutes = require("./routes/auth");
@@ -34,9 +36,15 @@ require("./models/pricingRule");
 // middleware
 app.use(express.json());
 
+// swagger docs
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.get("/docs", (req, res) => {
+  res.redirect("/api-docs");
+});
+
 // routes
 app.get("/", (req, res) => {
-  res.send("Backend sudah jalan 🚀");
+  res.send("Backend sudah jalan 🚀. Swagger tersedia di /api-docs");
 });
 
 app.use("/api/auth", authRoutes);
