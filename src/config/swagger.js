@@ -59,7 +59,11 @@ const swaggerDocument = {
                 required: ["name", "email", "password"],
                 properties: {
                   name: { type: "string", example: "Alya" },
-                  email: { type: "string", format: "email", example: "alya@example.com" },
+                  email: {
+                    type: "string",
+                    format: "email",
+                    example: "alya@example.com",
+                  },
                   password: { type: "string", example: "secret123" },
                   role: { type: "string", example: "customer" },
                 },
@@ -120,7 +124,10 @@ const swaggerDocument = {
         tags: ["Auth"],
         summary: "Admin-only test route",
         security: [{ bearerAuth: [] }],
-        responses: { 200: { description: "Welcome Admin!" }, 403: { description: "Forbidden" } },
+        responses: {
+          200: { description: "Welcome Admin!" },
+          403: { description: "Forbidden" },
+        },
       },
     },
     "/api/auth/provider": {
@@ -128,7 +135,10 @@ const swaggerDocument = {
         tags: ["Auth"],
         summary: "Provider-only test route",
         security: [{ bearerAuth: [] }],
-        responses: { 200: { description: "Welcome Provider!" }, 403: { description: "Forbidden" } },
+        responses: {
+          200: { description: "Welcome Provider!" },
+          403: { description: "Forbidden" },
+        },
       },
     },
     "/api/posts": {
@@ -163,7 +173,14 @@ const swaggerDocument = {
         tags: ["Posts"],
         summary: "Delete a post",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         responses: { 200: { description: "Post deleted" } },
       },
     },
@@ -180,14 +197,28 @@ const swaggerDocument = {
         tags: ["Users"],
         summary: "Get user by id",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         responses: { 200: { description: "Detail user" } },
       },
       put: {
         tags: ["Users"],
         summary: "Update user",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         requestBody: {
           required: true,
           content: {
@@ -209,7 +240,14 @@ const swaggerDocument = {
         tags: ["Users"],
         summary: "Delete user",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         responses: { 200: { description: "User berhasil dihapus" } },
       },
     },
@@ -251,14 +289,28 @@ const swaggerDocument = {
       get: {
         tags: ["Services"],
         summary: "Get service by id",
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         responses: { 200: { description: "Detail service" } },
       },
       put: {
         tags: ["Services"],
         summary: "Update service",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         requestBody: {
           required: true,
           content: {
@@ -285,7 +337,14 @@ const swaggerDocument = {
         tags: ["Services"],
         summary: "Delete service",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         responses: { 200: { description: "Service berhasil dihapus" } },
       },
     },
@@ -322,14 +381,28 @@ const swaggerDocument = {
       get: {
         tags: ["Providers"],
         summary: "Get provider by id",
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         responses: { 200: { description: "Detail provider" } },
       },
       put: {
         tags: ["Providers"],
         summary: "Update provider",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         requestBody: {
           required: false,
           content: {
@@ -351,7 +424,14 @@ const swaggerDocument = {
         tags: ["Providers"],
         summary: "Delete provider",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         responses: { 200: { description: "Provider berhasil dihapus" } },
       },
     },
@@ -371,7 +451,13 @@ const swaggerDocument = {
             "application/json": {
               schema: {
                 type: "object",
-                required: ["provider_id", "service_id", "day", "start_time", "end_time"],
+                required: [
+                  "provider_id",
+                  "service_id",
+                  "day",
+                  "start_time",
+                  "end_time",
+                ],
                 properties: {
                   provider_id: { type: "integer" },
                   service_id: { type: "integer" },
@@ -391,14 +477,28 @@ const swaggerDocument = {
       get: {
         tags: ["Schedules"],
         summary: "Get schedule by id",
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         responses: { 200: { description: "Detail jadwal layanan" } },
       },
       put: {
         tags: ["Schedules"],
         summary: "Update schedule",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         requestBody: {
           required: false,
           content: {
@@ -423,7 +523,14 @@ const swaggerDocument = {
         tags: ["Schedules"],
         summary: "Delete schedule",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         responses: { 200: { description: "Jadwal layanan berhasil dihapus" } },
       },
     },
@@ -443,7 +550,13 @@ const swaggerDocument = {
             "application/json": {
               schema: {
                 type: "object",
-                required: ["provider_id", "service_id", "slot_date", "start_time", "end_time"],
+                required: [
+                  "provider_id",
+                  "service_id",
+                  "slot_date",
+                  "start_time",
+                  "end_time",
+                ],
                 properties: {
                   provider_id: { type: "integer" },
                   service_id: { type: "integer" },
@@ -472,7 +585,14 @@ const swaggerDocument = {
         tags: ["Slots"],
         summary: "Update slot",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         requestBody: {
           required: false,
           content: {
@@ -498,7 +618,14 @@ const swaggerDocument = {
         tags: ["Slots"],
         summary: "Block slot",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         responses: { 200: { description: "Slot waktu berhasil diblokir" } },
       },
     },
@@ -568,14 +695,28 @@ const swaggerDocument = {
         tags: ["Bookings"],
         summary: "Get booking by id",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         responses: { 200: { description: "Detail booking" } },
       },
       put: {
         tags: ["Bookings"],
         summary: "Update booking status",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         requestBody: {
           required: true,
           content: {
@@ -596,7 +737,14 @@ const swaggerDocument = {
         tags: ["Bookings"],
         summary: "Cancel booking",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         responses: { 200: { description: "Booking berhasil dibatalkan" } },
       },
     },
@@ -605,7 +753,14 @@ const swaggerDocument = {
         tags: ["Bookings"],
         summary: "Cancel booking with reason",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         requestBody: {
           required: false,
           content: {
@@ -627,7 +782,14 @@ const swaggerDocument = {
         tags: ["Customers"],
         summary: "Get customer booking history",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         responses: { 200: { description: "Riwayat booking customer" } },
       },
     },
@@ -676,7 +838,14 @@ const swaggerDocument = {
         tags: ["Payments"],
         summary: "Get payment by id",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         responses: { 200: { description: "Detail payment" } },
       },
     },
@@ -685,7 +854,14 @@ const swaggerDocument = {
         tags: ["Payments"],
         summary: "Refund payment",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         requestBody: {
           required: false,
           content: {
@@ -761,7 +937,14 @@ const swaggerDocument = {
         tags: ["Pricing"],
         summary: "Update pricing rule",
         security: [{ bearerAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
         requestBody: {
           required: false,
           content: {

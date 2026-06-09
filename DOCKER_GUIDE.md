@@ -1,6 +1,39 @@
 # Docker Guide Booking App
 
-## Jalankan Project
+## Deploy ke VPS
+
+1. Clone repository di VPS.
+2. Pastikan file `.env.docker` ada di root project. File ini dipakai langsung oleh Docker Compose.
+3. Jika ingin mengubah password database atau JWT, edit `.env.docker`. Minimal nilainya:
+
+```text
+PORT=3000
+DB_NAME=booking_db
+DB_USER=root
+DB_PASS=password_mysql_yang_kuat
+DB_HOST=mysql
+MYSQL_DATABASE=booking_db
+MYSQL_ROOT_PASSWORD=password_mysql_yang_kuat
+JWT_SECRET=secret_jwt_yang_panjang_dan_acak
+DB_SYNC_ALTER=false
+NODE_ENV=production
+```
+
+4. Jalankan container:
+
+```bash
+docker compose up --build -d
+```
+
+5. Akses API dari browser atau Postman:
+
+```text
+http://IP_VPS_KAMU:3000
+```
+
+Catatan: MySQL tidak diekspos ke host secara default. Database hanya bisa diakses dari container API.
+
+## Jalankan Project Lokal Dengan Docker
 
 Build dan jalankan API + MySQL:
 
@@ -17,7 +50,7 @@ http://localhost:3000
 MySQL dari host berjalan di:
 
 ```text
-localhost:3308
+tidak diekspos ke host secara default
 ```
 
 Credential MySQL Docker:
@@ -25,57 +58,9 @@ Credential MySQL Docker:
 ```text
 database: booking_db
 user: root
-password: booking_password
+password: ambil dari file .env
 host di container: mysql
-host dari laptop: localhost
-port dari laptop: 3308
-```
-
-## Jalankan Dengan Ngrok
-
-Ngrok dipakai agar API lokal bisa diakses online.
-
-1. Buat akun dan ambil authtoken dari dashboard ngrok.
-2. Tambahkan token ke file `.env` di root project:
-
-```text
-NGROK_AUTHTOKEN=isi_token_ngrok_kamu
-```
-
-3. Jalankan API + MySQL + ngrok:
-
-```bash
-docker compose --profile ngrok up --build
-```
-
-4. Buka dashboard ngrok lokal:
-
-```text
-http://localhost:4040
-```
-
-Di sana akan muncul public URL seperti:
-
-```text
-https://xxxx-xxxx.ngrok-free.app
-```
-
-Gunakan URL tersebut sebagai `base_url` Postman:
-
-```text
-{{base_url}} = https://xxxx-xxxx.ngrok-free.app
-```
-
-Contoh endpoint online:
-
-```text
-https://xxxx-xxxx.ngrok-free.app/api/auth/login
-```
-
-Jika ingin melihat URL langsung dari log:
-
-```bash
-docker compose logs -f ngrok
+host dari container lain: mysql
 ```
 
 ## Stop Container
@@ -104,7 +89,6 @@ database/schema.sql
 ```bash
 docker compose logs -f api
 docker compose logs -f mysql
-docker compose logs -f ngrok
 ```
 
 ## Test API

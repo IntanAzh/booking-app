@@ -3,16 +3,13 @@ services:
     image: mysql:8.4
     container_name: booking_mysql
     restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: booking_db
-      MYSQL_ROOT_PASSWORD: booking_password
-    ports:
-      - "3308:3306"
+    env_file:
+      - .env.docker
     volumes:
       - booking_mysql_data:/var/lib/mysql
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pbooking_password"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -26,34 +23,10 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    environment:
-      NODE_ENV: production
-      PORT: 3000
-      DB_NAME: booking_db
-      DB_USER: root
-      DB_PASS: booking_password
-      DB_HOST: mysql
-      JWT_SECRET: SECRET_KEY
-      DB_SYNC_ALTER: "false"
+    env_file:
+      - .env.docker
     ports:
       - "3000:3000"
-
-  ngrok:
-    image: ngrok/ngrok:latest
-    container_name: booking_ngrok
-    restart: unless-stopped
-    profiles:
-      - ngrok
-    depends_on:
-      - api
-    environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
-    command:
-      - http
-      - http://api:3000
-      - --log=stdout
-    ports:
-      - "4040:4040"
 
 volumes:
   booking_mysql_data:
