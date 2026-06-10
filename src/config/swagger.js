@@ -8,7 +8,7 @@ const swaggerDocument = {
   },
   servers: [
     {
-      url: "http://localhost:3000",
+      url: "http://20.2.233.219:3000",
       description: "Local development server",
     },
   ],

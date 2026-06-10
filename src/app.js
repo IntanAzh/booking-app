@@ -4,6 +4,7 @@ const express = require("express");
 const app = express();
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("./config/swagger");
+const cors = require("cors");
 
 // import routes
 const authRoutes = require("./routes/auth");
@@ -34,6 +35,7 @@ require("./models/payment");
 require("./models/pricingRule");
 
 // middleware
+app.use(cors());
 app.use(express.json());
 
 // swagger docs
