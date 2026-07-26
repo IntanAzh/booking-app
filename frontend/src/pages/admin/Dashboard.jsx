@@ -1,139 +1,165 @@
 import React, { useState, useEffect } from 'react';
-import { Users, CreditCard, Box, Activity } from 'lucide-react';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  Legend
-} from 'recharts';
-// import api from '../../services/api'; // Nanti untuk fetch data asli
+import { Users, CreditCard, Box, Activity, TrendingUp } from 'lucide-react';
+import api from '../../services/api';
 
-// Mock data untuk UI awal
-const bookingData = [
-  { name: 'Senin', bookings: 12, revenue: 1500 },
-  { name: 'Selasa', bookings: 19, revenue: 2300 },
-  { name: 'Rabu', bookings: 15, revenue: 1800 },
-  { name: 'Kamis', bookings: 22, revenue: 2800 },
-  { name: 'Jumat', bookings: 28, revenue: 3500 },
-  { name: 'Sabtu', bookings: 35, revenue: 4200 },
-  { name: 'Minggu', bookings: 30, revenue: 3800 },
-];
-
-const StatCard = ({ title, value, icon: Icon, color, trend }) => (
-  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+const StatCard = ({ title, value, icon: Icon, color, description }) => (
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
     <div className="flex justify-between items-start">
       <div>
         <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
-        <h3 className="text-2xl font-bold text-slate-800">{value}</h3>
+        <h3 className="text-3xl font-bold text-slate-800">{value}</h3>
+        {description && <p className="text-xs text-slate-400 mt-2">{description}</p>}
       </div>
       <div className={`p-3 rounded-xl ${color}`}>
         <Icon size={24} />
       </div>
     </div>
-    <div className="mt-4 flex items-center text-sm">
-      <span className={trend > 0 ? "text-green-500 font-medium" : "text-red-500 font-medium"}>
-        {trend > 0 ? '+' : ''}{trend}%
-      </span>
-      <span className="text-slate-500 ml-2">vs last week</span>
-    </div>
   </div>
 );
 
-const Dashboard = () => {
+const AdminDashboard = () => {
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/dashboard/admin');
+      setDashboardData(response.data.data);
+      setError(null);
+    } catch (err) {
+      console.error("Gagal memuat dashboard", err);
+      setError(err.response?.data?.message || err.message || 'Gagal memuat data dashboard');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100">
+        {error}
+      </div>
+    );
+  }
+
+  const usersInfo = dashboardData?.users || { total_users: 0, total_customers: 0, total_providers: 0 };
+  const bookingsInfo = dashboardData?.bookings || { total_bookings: 0, pending: 0, confirmed: 0, completed: 0, cancelled: 0 };
+  const revenueInfo = dashboardData?.revenue || { total_revenue: 0, paid_completed_bookings: 0 };
+  const servicesInfo = dashboardData?.services || { total_services: 0 };
+  const topServices = dashboardData?.top_services || [];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Dashboard Overview</h1>
-          <p className="text-slate-500 mt-1">Pantau metrik utama dari Booking App Anda.</p>
+          <p className="text-slate-500 mt-1">Pantau metrik utama aplikasi dari data terkini database.</p>
         </div>
-        <button className="bg-white border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 rounded-lg shadow-sm hover:bg-slate-50">
-          Last 7 Days
+        <button 
+          onClick={fetchDashboardData}
+          className="bg-white border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 rounded-lg shadow-sm hover:bg-slate-50 flex items-center gap-2"
+        >
+          <TrendingUp size={16} /> Refresh Data
         </button>
       </div>
 
-      {/* Stat Cards */}
+      {/* Stat Cards Live Database */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatCard 
           title="Total Users" 
-          value="1,248" 
+          value={usersInfo.total_users} 
           icon={Users} 
           color="bg-blue-100 text-blue-600" 
-          trend={12.5} 
+          description={`${usersInfo.total_customers} Customer • ${usersInfo.total_providers} Provider`}
         />
         <StatCard 
           title="Total Bookings" 
-          value="3,842" 
+          value={bookingsInfo.total_bookings} 
           icon={Activity} 
           color="bg-indigo-100 text-indigo-600" 
-          trend={8.2} 
+          description={`${bookingsInfo.confirmed} Confirmed • ${bookingsInfo.completed} Completed`}
         />
         <StatCard 
           title="Total Revenue" 
-          value="$45,230" 
+          value={`$${Number(revenueInfo.total_revenue).toLocaleString()}`} 
           icon={CreditCard} 
           color="bg-emerald-100 text-emerald-600" 
-          trend={15.3} 
+          description={`Dari ${revenueInfo.paid_completed_bookings} transaksi sukses`}
         />
         <StatCard 
           title="Active Services" 
-          value="64" 
+          value={servicesInfo.total_services} 
           icon={Box} 
           color="bg-amber-100 text-amber-600" 
-          trend={-2.4} 
+          description="Layanan terdaftar"
         />
       </div>
 
-      {/* Charts */}
+      {/* Summary Status & Top Services */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue Area Chart */}
+        {/* Status Breakdown */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h3 className="text-lg font-bold text-slate-800 mb-6">Revenue Overview</h3>
-          <div className="h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={bookingData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b'}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b'}} tickFormatter={(value) => `$${value}`} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                />
-                <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
-              </AreaChart>
-            </ResponsiveContainer>
+          <h3 className="text-lg font-bold text-slate-800 mb-4">Status Reservasi</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center p-3 bg-amber-50 rounded-xl">
+              <span className="text-sm font-medium text-amber-800">Pending</span>
+              <span className="font-bold text-amber-900">{bookingsInfo.pending}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-blue-50 rounded-xl">
+              <span className="text-sm font-medium text-blue-800">Confirmed</span>
+              <span className="font-bold text-blue-900">{bookingsInfo.confirmed}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-emerald-50 rounded-xl">
+              <span className="text-sm font-medium text-emerald-800">Completed</span>
+              <span className="font-bold text-emerald-900">{bookingsInfo.completed}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-red-50 rounded-xl">
+              <span className="text-sm font-medium text-red-800">Cancelled</span>
+              <span className="font-bold text-red-900">{bookingsInfo.cancelled}</span>
+            </div>
           </div>
         </div>
 
-        {/* Bookings Bar Chart */}
+        {/* Top Services */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h3 className="text-lg font-bold text-slate-800 mb-6">Bookings Trend</h3>
-          <div className="h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={bookingData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b'}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b'}} />
-                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Bar dataKey="bookings" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={32} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <h3 className="text-lg font-bold text-slate-800 mb-4">Layanan Terpopuler</h3>
+          {topServices.length > 0 ? (
+            <div className="space-y-3">
+              {topServices.map((item, idx) => (
+                <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl">
+                  <div>
+                    <span className="text-sm font-bold text-slate-800">{item.service?.name || 'Layanan'}</span>
+                    <p className="text-xs text-slate-400">Harga: ${item.service?.price}</p>
+                  </div>
+                  <span className="text-xs font-bold bg-primary-100 text-primary-700 px-3 py-1 rounded-full">
+                    {item.total_bookings} Booking
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center text-slate-400 text-sm">
+              Belum ada data layanan populer.
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-export default Dashboard;
+export default AdminDashboard;

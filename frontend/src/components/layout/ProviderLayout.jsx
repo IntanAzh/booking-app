@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, Settings, Calendar, Bell, Search, 
+  LayoutDashboard, Settings, Calendar, Bell, Tag,
   LogOut, CalendarDays, Clock, DollarSign, ChevronRight
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
@@ -17,6 +17,7 @@ const ProviderLayout = () => {
 
   const navItems = [
     { name: 'Dashboard', path: '/provider/dashboard', icon: <LayoutDashboard size={20} /> },
+    { name: 'Categories', path: '/provider/categories', icon: <Tag size={20} /> },
     { name: 'My Services', path: '/provider/services', icon: <Settings size={20} /> },
     { name: 'My Schedules', path: '/provider/schedules', icon: <CalendarDays size={20} /> },
     { name: 'My Slots', path: '/provider/slots', icon: <Clock size={20} /> },
@@ -83,15 +84,7 @@ const ProviderLayout = () => {
       {/* Main Content */}
       <main className="flex-1 flex flex-col ml-64 min-h-screen relative">
         {/* Header */}
-        <header className="h-16 bg-white border-b border-slate-200 flex justify-between items-center px-8 shadow-sm sticky top-0 z-10">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Cari di portal provider..." 
-              className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-64 transition-all text-sm"
-            />
-          </div>
+        <header className="h-16 bg-white border-b border-slate-200 flex justify-end items-center px-8 shadow-sm sticky top-0 z-10">
           <div className="flex items-center gap-4">
             <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
               <Bell size={20} />

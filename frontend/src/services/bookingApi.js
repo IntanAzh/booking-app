@@ -18,7 +18,7 @@ export const bookingApi = {
   },
 
   updateBookingStatus: async (id, status) => {
-    const response = await api.put(`/bookings/${id}/status`, { status });
+    const response = await api.put(`/bookings/${id}`, { status });
     return response.data;
   },
 

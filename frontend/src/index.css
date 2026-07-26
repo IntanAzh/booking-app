@@ -8,6 +8,12 @@
   body {
     @apply bg-slate-50 text-slate-900 antialiased font-sans;
   }
+  
+  /* Disable native browser password reveal icon (Edge / Internet Explorer / Chrome) */
+  input::-ms-reveal,
+  input::-ms-clear {
+    display: none;
+  }
 }
 
 @layer utilities {

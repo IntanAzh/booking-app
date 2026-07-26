@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
 import DataTable from '../../components/common/DataTable';
 import { slotService } from '../../services/slotService';
 
@@ -33,8 +32,8 @@ const Slots = () => {
     },
     { 
       header: 'Tanggal', 
-      accessor: 'date',
-      render: (row) => <span>{new Date(row.date).toLocaleDateString()}</span>
+      accessor: 'slot_date',
+      render: (row) => <span>{row.slot_date ? new Date(row.slot_date).toLocaleDateString() : '-'}</span>
     },
     { 
       header: 'Jam Mulai', 
@@ -45,22 +44,24 @@ const Slots = () => {
       accessor: 'end_time'
     },
     { 
-      header: 'Tipe', 
-      accessor: 'is_recurring',
-      render: (row) => (
-        <span className={`px-2 py-1 rounded text-xs font-bold ${row.is_recurring ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-          {row.is_recurring ? 'Berulang' : 'Sekali'}
-        </span>
-      )
+      header: 'Kapasitas', 
+      accessor: 'capacity',
+      render: (row) => <span className="font-bold text-slate-700">{row.capacity ?? 1}</span>
     },
     { 
-      header: 'Tersedia', 
-      accessor: 'is_available',
-      render: (row) => (
-        <span className={`px-2 py-1 rounded text-xs font-bold ${row.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-          {row.is_available ? 'Ya' : 'Tidak'}
-        </span>
-      )
+      header: 'Status', 
+      accessor: 'status',
+      render: (row) => {
+        let bgColor = 'bg-slate-100 text-slate-700';
+        if (row.status === 'available') bgColor = 'bg-green-100 text-green-700';
+        if (row.status === 'booked') bgColor = 'bg-blue-100 text-blue-700';
+        if (row.status === 'blocked') bgColor = 'bg-red-100 text-red-700';
+        return (
+          <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${bgColor}`}>
+            {row.status || 'available'}
+          </span>
+        );
+      }
     }
   ];
 
@@ -71,9 +72,6 @@ const Slots = () => {
           <h1 className="text-2xl font-bold text-slate-900">Manajemen Slots</h1>
           <p className="text-slate-500 mt-1">Detail slot waktu yang tersedia untuk booking.</p>
         </div>
-        <button className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center gap-2">
-          <Plus size={18} /> Tambah Slot Khusus
-        </button>
       </div>
 
       {loading ? (
@@ -89,8 +87,6 @@ const Slots = () => {
           columns={columns} 
           data={slots} 
           searchPlaceholder="Cari slot..."
-          onEdit={(row) => console.log('Edit', row)}
-          onDelete={(row) => console.log('Delete', row)}
         />
       )}
     </div>

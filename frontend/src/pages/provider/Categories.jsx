@@ -3,7 +3,7 @@ import { Plus, X, FolderPlus, Tag, AlertCircle } from 'lucide-react';
 import DataTable from '../../components/common/DataTable';
 import { categoryService } from '../../services/categoryService';
 
-const Categories = () => {
+const ProviderCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -151,12 +151,12 @@ const Categories = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Manajemen Categories</h1>
-          <p className="text-slate-500 mt-1">Kelola kategori layanan aplikasi Anda.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Categories</h1>
+          <p className="text-slate-500 mt-1">Lihat dan tambah kategori layanan aplikasi.</p>
         </div>
         <button 
           onClick={openCreateModal}
-          className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center gap-2 shadow-sm"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
         >
           <Plus size={18} /> Tambah Kategori
         </button>
@@ -164,7 +164,7 @@ const Categories = () => {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : error ? (
         <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100">
@@ -186,7 +186,7 @@ const Categories = () => {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-100">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-primary-100 rounded-lg text-primary-600">
+                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
                   <FolderPlus size={20} />
                 </div>
                 <h3 className="font-bold text-slate-800">
@@ -221,7 +221,7 @@ const Categories = () => {
                     value={formData.name}
                     onChange={handleInputChange}
                     placeholder="Contoh: Spa & Kesehatan"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-slate-800 text-sm"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-800 text-sm"
                     required
                   />
                 </div>
@@ -239,7 +239,7 @@ const Categories = () => {
                     value={formData.slug}
                     onChange={handleInputChange}
                     placeholder="spa-kesehatan"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-slate-800 text-sm font-mono"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-800 text-sm font-mono"
                     required
                   />
                 </div>
@@ -257,7 +257,7 @@ const Categories = () => {
                 <button 
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                  className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
                 >
                   {submitting ? (
                     <>
@@ -277,4 +277,4 @@ const Categories = () => {
   );
 };
 
-export default Categories;
+export default ProviderCategories;

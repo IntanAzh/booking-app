@@ -91,7 +91,12 @@ const calculateDynamicPrice = async ({ service, providerId, startTime }) => {
   const day = bookingDate.getDay();
   const hour = bookingDate.getHours();
 
-  const dateOnly = toDateOnly(bookingDate);
+  const startOfDay = new Date(bookingDate);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(bookingDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
   const demandCount = await Booking.count({
     where: {
       service_id: service.id,
@@ -100,8 +105,8 @@ const calculateDynamicPrice = async ({ service, providerId, startTime }) => {
         [Op.in]: ["pending", "confirmed", "completed"],
       },
       start_time: {
-        [Op.gte]: new Date(`${dateOnly}T00:00:00`),
-        [Op.lt]: new Date(`${dateOnly}T23:59:59`),
+        [Op.gte]: startOfDay,
+        [Op.lte]: endOfDay,
       },
     },
   });

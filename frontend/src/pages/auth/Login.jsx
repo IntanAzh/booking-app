@@ -54,7 +54,7 @@ const Login = () => {
           </p>
         </div>
         
-        <form className="mt-8 space-y-6 relative" onSubmit={handleSubmit}>
+        <form className="mt-8 space-y-6 relative" onSubmit={handleSubmit} autoComplete="off">
           {error && (
             <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm text-center">
               {error}
@@ -66,6 +66,8 @@ const Login = () => {
               <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <input
                 type="email"
+                name="user_email"
+                autoComplete="off"
                 required
                 className="pl-10 w-full px-3 py-3 border border-slate-200 placeholder-slate-400 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-slate-50 focus:bg-white"
                 placeholder="Email address"
@@ -77,6 +79,8 @@ const Login = () => {
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <input
                 type={showPassword ? "text" : "password"}
+                name="user_password"
+                autoComplete="new-password"
                 required
                 className="pl-10 pr-10 w-full px-3 py-3 border border-slate-200 placeholder-slate-400 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-slate-50 focus:bg-white"
                 placeholder="Password"

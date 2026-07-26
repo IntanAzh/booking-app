@@ -1,17 +1,35 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import DataTable from '../../components/common/DataTable';
 import { slotService } from '../../services/slotService';
+import { serviceApi } from '../../services/serviceApi';
 import { AuthContext } from '../../context/AuthContext';
 
 const ProviderSlots = () => {
   const { user } = useContext(AuthContext);
   const [slots, setSlots] = useState([]);
+  const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [editingSlot, setEditingSlot] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState(null);
+
+  const [formData, setFormData] = useState({
+    service_id: '',
+    slot_date: new Date().toISOString().split('T')[0],
+    start_time: '09:00',
+    end_time: '10:00',
+    capacity: 1,
+    status: 'available',
+  });
 
   useEffect(() => {
-    if (user?.id) fetchSlots();
+    if (user?.id) {
+      fetchSlots();
+      fetchProviderServices();
+    }
   }, [user]);
 
   const fetchSlots = async () => {
@@ -23,6 +41,100 @@ const ProviderSlots = () => {
       setError(err.message || 'Gagal memuat data slot Anda');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProviderServices = async () => {
+    try {
+      const data = await serviceApi.getAllServices({ provider_id: user.id });
+      const svcList = data || [];
+      setServices(svcList);
+      if (svcList.length > 0 && !formData.service_id) {
+        setFormData((prev) => ({ ...prev, service_id: svcList[0].id }));
+      }
+    } catch (err) {
+      console.error('Gagal memuat layanan provider', err);
+    }
+  };
+
+  const extractTimeStr = (val) => {
+    if (!val) return '09:00';
+    if (val.includes('T')) {
+      const d = new Date(val);
+      const hrs = String(d.getHours()).padStart(2, '0');
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      return `${hrs}:${mins}`;
+    }
+    return val.substring(0, 5);
+  };
+
+  const openCreateModal = () => {
+    setEditingSlot(null);
+    setFormData({
+      service_id: services[0]?.id || '',
+      slot_date: new Date().toISOString().split('T')[0],
+      start_time: '09:00',
+      end_time: '10:00',
+      capacity: 1,
+      status: 'available',
+    });
+    setFormError(null);
+    setShowModal(true);
+  };
+
+  const handleEdit = (row) => {
+    setEditingSlot(row);
+    setFormData({
+      service_id: row.service_id || (services[0]?.id || ''),
+      slot_date: row.slot_date ? row.slot_date.substring(0, 10) : new Date().toISOString().split('T')[0],
+      start_time: extractTimeStr(row.start_time),
+      end_time: extractTimeStr(row.end_time),
+      capacity: row.capacity ?? 1,
+      status: row.status || 'available',
+    });
+    setFormError(null);
+    setShowModal(true);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setFormError(null);
+
+    if (!formData.service_id || !formData.slot_date || !formData.start_time || !formData.end_time) {
+      setFormError('Layanan, tanggal, jam mulai, dan jam selesai wajib diisi');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const payload = {
+        provider_id: user.id,
+        service_id: Number(formData.service_id),
+        slot_date: formData.slot_date,
+        start_time: formData.start_time,
+        end_time: formData.end_time,
+        capacity: Number(formData.capacity) || 1,
+        status: formData.status,
+      };
+
+      if (editingSlot) {
+        await slotService.updateSlot(editingSlot.id, payload);
+      } else {
+        await slotService.createSlot(payload);
+      }
+
+      setShowModal(false);
+      setEditingSlot(null);
+      fetchSlots();
+    } catch (err) {
+      setFormError(err.response?.data?.message || err.message || 'Gagal menyimpan slot');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -41,28 +153,38 @@ const ProviderSlots = () => {
     { header: 'ID', accessor: 'id' },
     { 
       header: 'Tanggal', 
-      accessor: 'date',
-      render: (row) => <span>{new Date(row.date).toLocaleDateString()}</span>
-    },
-    { header: 'Jam Mulai', accessor: 'start_time' },
-    { header: 'Jam Selesai', accessor: 'end_time' },
-    { 
-      header: 'Tipe', 
-      accessor: 'is_recurring',
-      render: (row) => (
-        <span className={`px-2 py-1 rounded text-xs font-bold ${row.is_recurring ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-          {row.is_recurring ? 'Berulang' : 'Sekali'}
-        </span>
-      )
+      accessor: 'slot_date',
+      render: (row) => <span>{row.slot_date ? new Date(row.slot_date).toLocaleDateString('id-ID') : '-'}</span>
     },
     { 
-      header: 'Tersedia', 
-      accessor: 'is_available',
-      render: (row) => (
-        <span className={`px-2 py-1 rounded text-xs font-bold ${row.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-          {row.is_available ? 'Ya' : 'Tidak'}
-        </span>
-      )
+      header: 'Jam Mulai', 
+      accessor: 'start_time',
+      render: (row) => <span>{extractTimeStr(row.start_time)}</span>
+    },
+    { 
+      header: 'Jam Selesai', 
+      accessor: 'end_time',
+      render: (row) => <span>{extractTimeStr(row.end_time)}</span>
+    },
+    { 
+      header: 'Kapasitas', 
+      accessor: 'capacity',
+      render: (row) => <span className="font-bold text-slate-700">{row.capacity ?? 1}</span>
+    },
+    { 
+      header: 'Status', 
+      accessor: 'status',
+      render: (row) => {
+        let bgColor = 'bg-slate-100 text-slate-700';
+        if (row.status === 'available') bgColor = 'bg-green-100 text-green-700';
+        if (row.status === 'booked') bgColor = 'bg-blue-100 text-blue-700';
+        if (row.status === 'blocked') bgColor = 'bg-red-100 text-red-700';
+        return (
+          <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${bgColor}`}>
+            {row.status || '-'}
+          </span>
+        );
+      }
     }
   ];
 
@@ -73,7 +195,10 @@ const ProviderSlots = () => {
           <h1 className="text-2xl font-bold text-slate-900">My Slots</h1>
           <p className="text-slate-500 mt-1">Detail slot ketersediaan spesifik harian Anda.</p>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm">
+        <button 
+          onClick={openCreateModal}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
+        >
           <Plus size={18} /> Tambah Slot Khusus
         </button>
       </div>
@@ -91,9 +216,135 @@ const ProviderSlots = () => {
           columns={columns} 
           data={slots} 
           searchPlaceholder="Cari slot..."
-          onEdit={(row) => console.log('Edit', row)}
+          onEdit={handleEdit}
           onDelete={handleDelete}
         />
+      )}
+
+      {/* Modal Popup Tambah/Edit Slot Khusus */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100 mb-4">
+              <h3 className="text-lg font-bold text-slate-800">
+                {editingSlot ? 'Edit Slot Khusus' : 'Tambah Slot Khusus'}
+              </h3>
+              <button 
+                onClick={() => setShowModal(false)}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {formError && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">
+                {formError}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Layanan</label>
+                <select 
+                  name="service_id"
+                  value={formData.service_id}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 bg-white"
+                >
+                  {services.length === 0 && <option value="">Pilih Layanan Anda</option>}
+                  {services.map((svc) => (
+                    <option key={svc.id} value={svc.id}>{svc.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Tanggal Slot</label>
+                <input 
+                  type="date" 
+                  name="slot_date"
+                  value={formData.slot_date}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Jam Mulai</label>
+                  <input 
+                    type="time" 
+                    name="start_time"
+                    value={formData.start_time}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Jam Selesai</label>
+                  <input 
+                    type="time" 
+                    name="end_time"
+                    value={formData.end_time}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Kapasitas</label>
+                  <input 
+                    type="number" 
+                    name="capacity"
+                    value={formData.capacity}
+                    onChange={handleInputChange}
+                    min="1"
+                    required
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Status</label>
+                  <select 
+                    name="status"
+                    value={formData.status}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 bg-white"
+                  >
+                    <option value="available">Available (Tersedia)</option>
+                    <option value="blocked">Blocked (Diblokir)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <button 
+                  type="button" 
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={submitting}
+                  className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {submitting ? 'Menyimpan...' : 'Simpan Slot'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

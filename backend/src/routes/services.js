@@ -241,13 +241,22 @@ router.put(
 
 // Delete Service
 
-router.delete("/:id", verifyToken, checkRole(["admin"]), async (req, res) => {
+router.delete("/:id", verifyToken, checkRole(["admin", "provider"]), async (req, res) => {
   try {
     const service = await Service.findByPk(req.params.id);
 
     if (!service) {
       return res.status(404).json({
         message: "Service tidak ditemukan",
+      });
+    }
+
+    if (
+      req.user.role === "provider" &&
+      Number(service.provider_id) !== Number(req.user.id)
+    ) {
+      return res.status(403).json({
+        message: "Akses ditolak: Anda hanya dapat menghapus layanan milik Anda sendiri",
       });
     }
 

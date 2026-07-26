@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
 import DataTable from '../../components/common/DataTable';
 import { scheduleService } from '../../services/scheduleService';
 
@@ -36,7 +35,7 @@ const Schedules = () => {
       accessor: 'service',
       render: (row) => <div className="text-slate-700">{row.service?.name || '-'}</div>
     },
-    { header: 'Hari', accessor: 'day_of_week' },
+    { header: 'Hari', accessor: 'day' },
     { 
       header: 'Jam Mulai', 
       accessor: 'start_time'
@@ -47,10 +46,10 @@ const Schedules = () => {
     },
     { 
       header: 'Status Aktif', 
-      accessor: 'is_active',
+      accessor: 'is_available',
       render: (row) => (
-        <span className={`px-2 py-1 rounded text-xs font-bold ${row.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-          {row.is_active ? 'Aktif' : 'Nonaktif'}
+        <span className={`px-2 py-1 rounded text-xs font-bold ${row.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          {row.is_available ? 'Tersedia' : 'Tidak Tersedia'}
         </span>
       )
     }
@@ -61,11 +60,8 @@ const Schedules = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Manajemen Schedules</h1>
-          <p className="text-slate-500 mt-1">Atur jadwal ketersediaan untuk setiap layanan dan provider.</p>
+          <p className="text-slate-500 mt-1">Daftar jadwal ketersediaan layanan dan provider.</p>
         </div>
-        <button className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center gap-2">
-          <Plus size={18} /> Tambah Jadwal
-        </button>
       </div>
 
       {loading ? (
@@ -81,8 +77,6 @@ const Schedules = () => {
           columns={columns} 
           data={schedules} 
           searchPlaceholder="Cari jadwal..."
-          onEdit={(row) => console.log('Edit', row)}
-          onDelete={(row) => console.log('Delete', row)}
         />
       )}
     </div>

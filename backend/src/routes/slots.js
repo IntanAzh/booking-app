@@ -32,6 +32,16 @@ const withSlotAvailability = async (slot) => {
   };
 };
 
+const parseSlotDateTime = (dateStr, timeStr) => {
+  if (!timeStr) return null;
+  if (typeof timeStr === "string" && (timeStr.includes("T") || timeStr.includes("Z"))) {
+    return new Date(timeStr);
+  }
+  const cleanDate = dateStr ? dateStr : new Date().toISOString().split("T")[0];
+  const cleanTime = timeStr.length === 5 ? `${timeStr}:00` : timeStr;
+  return new Date(`${cleanDate}T${cleanTime}`);
+};
+
 router.post(
   "/",
   verifyToken,
@@ -47,9 +57,13 @@ router.post(
         status,
         capacity,
       } = req.body;
-      const providerId = provider_id || req.user.id;
+      const providerId = provider_id || (req.user.role === "provider" ? req.user.id : null);
 
-      if (!providerId || !service_id || !slot_date || !start_time || !end_time) {
+      if (!providerId) {
+        return res.status(400).json({ message: "provider_id wajib diisi untuk admin" });
+      }
+
+      if (!service_id || !slot_date || !start_time || !end_time) {
         return res.status(400).json({ message: "Data slot wajib diisi" });
       }
 
@@ -71,12 +85,15 @@ router.post(
         return res.status(404).json({ message: "Service tidak ditemukan" });
       }
 
+      const parsedStartTime = parseSlotDateTime(slot_date, start_time);
+      const parsedEndTime = parseSlotDateTime(slot_date, end_time);
+
       const slot = await TimeSlot.create({
         provider_id: providerId,
         service_id,
         slot_date,
-        start_time,
-        end_time,
+        start_time: parsedStartTime,
+        end_time: parsedEndTime,
         status: status || "available",
         capacity: capacity || 1,
       });
@@ -174,6 +191,15 @@ router.put(
         return res.status(400).json({ message: "Capacity minimal 1" });
       }
 
+      if (payload.start_time) {
+        const targetDate = payload.slot_date || slot.slot_date;
+        payload.start_time = parseSlotDateTime(targetDate, payload.start_time);
+      }
+      if (payload.end_time) {
+        const targetDate = payload.slot_date || slot.slot_date;
+        payload.end_time = parseSlotDateTime(targetDate, payload.end_time);
+      }
+
       await slot.update(payload);
       const data = await withSlotAvailability(slot);
 
@@ -203,9 +229,9 @@ router.delete(
         return res.status(403).json({ message: "Akses ditolak" });
       }
 
-      await slot.update({ status: "blocked" });
+      await slot.destroy();
 
-      res.json({ message: "Slot waktu berhasil diblokir" });
+      res.json({ message: "Slot waktu berhasil dihapus" });
     } catch (error) {
       res.status(500).json({ message: error.message });
     }

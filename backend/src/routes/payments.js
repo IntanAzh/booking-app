@@ -91,20 +91,31 @@ router.post("/simulate", verifyToken, async (req, res) => {
 
 router.get("/", verifyToken, async (req, res) => {
   try {
-    const include = [{ model: Booking, as: "booking" }];
+    const bookingWhere = {};
+
+    if (req.user.role === "customer") {
+      bookingWhere.customer_id = req.user.id;
+    } else if (req.user.role === "provider") {
+      bookingWhere.provider_id = req.user.id;
+    }
+
+    const include = [
+      {
+        model: Booking,
+        as: "booking",
+        where: req.user.role !== "admin" ? bookingWhere : undefined,
+        required: req.user.role !== "admin",
+      },
+    ];
+
     const payments = await Payment.findAll({
       include,
       order: [["createdAt", "DESC"]],
     });
 
-    const data =
-      req.user.role === "admin"
-        ? payments
-        : payments.filter((payment) => canAccessBooking(req.user, payment.booking));
-
     res.json({
       message: "Data pembayaran",
-      data,
+      data: payments,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -127,6 +138,56 @@ router.get("/:id", verifyToken, async (req, res) => {
 
     res.json({
       message: "Detail pembayaran",
+      data: payment,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.put("/:id", verifyToken, async (req, res) => {
+  try {
+    const { status, method } = req.body;
+    const validStatuses = ["pending", "paid", "failed", "refunded"];
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: "Status tidak valid" });
+    }
+
+    const payment = await Payment.findByPk(req.params.id, {
+      include: [{ model: Booking, as: "booking" }],
+    });
+
+    if (!payment) {
+      return res.status(404).json({ message: "Payment tidak ditemukan" });
+    }
+
+    if (!canAccessPayment(req.user, payment)) {
+      return res.status(403).json({ message: "Akses ditolak" });
+    }
+
+    const updateData = { status };
+    if (method) updateData.method = method;
+    if (status === "paid") updateData.paid_at = new Date();
+
+    await payment.update(updateData);
+
+    if (status === "paid" && payment.booking) {
+      await payment.booking.update({
+        payment_status: "paid",
+        status: payment.booking.status === "pending" ? "confirmed" : payment.booking.status,
+      });
+    }
+
+    if (status === "refunded" && payment.booking) {
+      await payment.booking.update({
+        payment_status: "refunded",
+        status: payment.booking.status !== "completed" ? "cancelled" : payment.booking.status,
+      });
+    }
+
+    res.json({
+      message: "Payment berhasil diupdate",
       data: payment,
     });
   } catch (error) {

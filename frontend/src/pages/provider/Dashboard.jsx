@@ -148,11 +148,13 @@ const ProviderDashboard = () => {
               <div key={booking.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50/50 transition-colors">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold uppercase text-sm flex-shrink-0">
-                    {booking.user?.name?.charAt(0) || '?'}
+                    {(booking.customer?.name || booking.user?.name || '?').charAt(0)}
                   </div>
                   <div>
-                    <div className="font-semibold text-slate-800">{booking.user?.name || 'Pelanggan'}</div>
-                    <div className="text-sm text-slate-500">{booking.service?.name || 'Layanan'} • {new Date(booking.booking_date).toLocaleDateString('id-ID')}</div>
+                    <div className="font-semibold text-slate-800">{booking.customer?.name || booking.user?.name || 'Pelanggan'}</div>
+                    <div className="text-sm text-slate-500">
+                      {booking.service?.name || 'Layanan'} • {booking.start_time ? new Date(booking.start_time).toLocaleDateString('id-ID') : '-'}
+                    </div>
                   </div>
                 </div>
                 <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${meta.bg} ${meta.color}`}>

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
 import DataTable from '../../components/common/DataTable';
 import { bookingApi } from '../../services/bookingApi';
 
@@ -49,7 +48,7 @@ const Bookings = () => {
     { 
       header: 'Pelanggan', 
       accessor: 'customer',
-      render: (row) => <div className="font-medium text-slate-900">{row.user?.name || '-'}</div>
+      render: (row) => <div className="font-medium text-slate-900">{row.customer?.name || row.user?.name || '-'}</div>
     },
     { 
       header: 'Layanan', 
@@ -58,8 +57,8 @@ const Bookings = () => {
     },
     { 
       header: 'Tanggal', 
-      accessor: 'booking_date',
-      render: (row) => <span>{new Date(row.booking_date).toLocaleDateString()}</span>
+      accessor: 'start_time',
+      render: (row) => <span>{row.start_time ? new Date(row.start_time).toLocaleDateString() : '-'}</span>
     },
     { 
       header: 'Status', 
@@ -103,9 +102,6 @@ const Bookings = () => {
           <h1 className="text-2xl font-bold text-slate-900">Manajemen Bookings</h1>
           <p className="text-slate-500 mt-1">Kelola seluruh reservasi dan jadwal pertemuan.</p>
         </div>
-        <button className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center gap-2">
-          <Plus size={18} /> Buat Booking
-        </button>
       </div>
 
       {loading ? (
@@ -121,7 +117,6 @@ const Bookings = () => {
           columns={columns} 
           data={bookings} 
           searchPlaceholder="Cari ID atau nama pelanggan..."
-          onEdit={(row) => console.log('Edit', row)}
           onDelete={handleDelete}
         />
       )}

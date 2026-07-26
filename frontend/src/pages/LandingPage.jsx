@@ -42,7 +42,7 @@ const LandingPage = () => {
                 <div className="flex items-center gap-4">
                   <span className="text-slate-700 font-medium border-r border-slate-300 pr-4">Halo, {user.name}</span>
                   {user.role === 'admin' || user.role === 'provider' ? (
-                    <Link to="/admin" className="text-primary-600 font-medium hover:text-primary-700">Dashboard</Link>
+                    <Link to={user.role === 'provider' ? '/provider' : '/admin'} className="text-primary-600 font-medium hover:text-primary-700">Dashboard</Link>
                   ) : (
                     <Link to="/my-bookings" className="text-primary-600 font-medium hover:text-primary-700">My Bookings</Link>
                   )}
@@ -72,9 +72,9 @@ const LandingPage = () => {
             Discover premium services, view available schedules, and book your appointments in just a few clicks. Fast, reliable, and hassle-free.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-            <button className="bg-primary-600 text-white px-8 py-3 rounded-full text-lg font-medium hover:bg-primary-700 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 flex items-center justify-center gap-2">
+            <Link to={user ? "/customer/bookings" : "/login"} className="bg-primary-600 text-white px-8 py-3 rounded-full text-lg font-medium hover:bg-primary-700 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 inline-flex items-center justify-center gap-2">
               Book Now <ChevronRight size={20} />
-            </button>
+            </Link>
             <a href="#services" className="bg-white text-slate-700 px-8 py-3 rounded-full text-lg font-medium hover:bg-slate-50 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2">
               Explore Services
             </a>

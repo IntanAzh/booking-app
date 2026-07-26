@@ -185,4 +185,17 @@ router.put("/rules/:id", verifyToken, checkRole(["admin"]), async (req, res) => 
   }
 });
 
+router.delete("/rules/:id", verifyToken, checkRole(["admin"]), async (req, res) => {
+  try {
+    const rule = await PricingRule.findByPk(req.params.id);
+    if (!rule) {
+      return res.status(404).json({ message: "Pricing rule tidak ditemukan" });
+    }
+    await rule.destroy();
+    res.json({ message: "Pricing rule berhasil dihapus" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

@@ -8,7 +8,7 @@ const swaggerDocument = {
   },
   servers: [
     {
-      url: "http://20.2.233.219:3000",
+      url: "http://localhost:3000",
       description: "Local development server",
     },
   ],
@@ -189,6 +189,18 @@ const swaggerDocument = {
         tags: ["Users"],
         summary: "List users",
         security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "role",
+            in: "query",
+            required: false,
+            description: "Filter pengguna berdasarkan role (admin, customer, provider)",
+            schema: {
+              type: "string",
+              enum: ["admin", "customer", "provider"],
+            },
+          },
+        ],
         responses: { 200: { description: "Data semua user" } },
       },
     },

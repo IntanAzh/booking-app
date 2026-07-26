@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
 import DataTable from '../../components/common/DataTable';
 import { pricingService } from '../../services/pricingService';
 
@@ -32,17 +31,24 @@ const Pricing = () => {
       render: (row) => <div className="font-bold text-slate-900">{row.name}</div>
     },
     { 
-      header: 'Tipe', 
-      accessor: 'type',
-      render: (row) => <span className="uppercase text-slate-500 font-medium text-xs">{row.type}</span>
+      header: 'Tipe Aturan', 
+      accessor: 'rule_type',
+      render: (row) => <span className="uppercase text-slate-600 font-bold text-xs">{row.rule_type || row.type || '-'}</span>
     },
     { 
-      header: 'Faktor', 
-      accessor: 'factor',
-      render: (row) => <span className="font-bold text-slate-700">{row.factor}x</span>
+      header: 'Tipe Penyesuaian', 
+      accessor: 'adjustment_type',
+      render: (row) => <span className="capitalize text-slate-500 font-medium text-xs">{row.adjustment_type || '-'}</span>
     },
-    { header: 'Mulai', accessor: 'start_date' },
-    { header: 'Selesai', accessor: 'end_date' },
+    { 
+      header: 'Nilai Penyesuaian', 
+      accessor: 'adjustment_value',
+      render: (row) => (
+        <span className="font-bold text-emerald-600">
+          {row.adjustment_type === 'percentage' ? `+${row.adjustment_value}%` : `+$${row.adjustment_value}`}
+        </span>
+      )
+    },
     { 
       header: 'Status', 
       accessor: 'is_active',
@@ -61,9 +67,6 @@ const Pricing = () => {
           <h1 className="text-2xl font-bold text-slate-900">Dynamic Pricing</h1>
           <p className="text-slate-500 mt-1">Atur lonjakan harga (surge pricing) berdasarkan waktu atau musim.</p>
         </div>
-        <button className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center gap-2">
-          <Plus size={18} /> Tambah Aturan
-        </button>
       </div>
 
       {loading ? (
@@ -79,8 +82,6 @@ const Pricing = () => {
           columns={columns} 
           data={rules} 
           searchPlaceholder="Cari aturan..."
-          onEdit={(row) => console.log('Edit', row)}
-          onDelete={(row) => console.log('Delete', row)}
         />
       )}
     </div>

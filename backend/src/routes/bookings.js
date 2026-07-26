@@ -560,6 +560,10 @@ router.put(
         status,
       });
 
+      if (booking.slot_id) {
+        await syncSlotStatus(booking.slot_id);
+      }
+
       res.json({
         message: "Status booking berhasil diupdate",
         data: booking,

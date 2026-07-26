@@ -11,6 +11,7 @@ import ProviderSchedules from './pages/provider/Schedules';
 import ProviderSlots from './pages/provider/Slots';
 import ProviderBookings from './pages/provider/Bookings';
 import ProviderPayments from './pages/provider/Payments';
+import ProviderCategories from './pages/provider/Categories';
 import Users from './pages/admin/Users';
 import Providers from './pages/admin/Providers';
 import Categories from './pages/admin/Categories';
@@ -118,6 +119,7 @@ function AppRoutes() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<ProviderDashboard />} />
+        <Route path="categories" element={<ProviderCategories />} />
         <Route path="services" element={<ProviderServices />} />
         <Route path="schedules" element={<ProviderSchedules />} />
         <Route path="slots" element={<ProviderSlots />} />

@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 
-// IMPORT
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
@@ -19,7 +18,7 @@ router.get("/", (req, res) => {
   });
 });
 
-//register, login, profile, role-based routes
+// register
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -38,6 +37,14 @@ router.post("/register", async (req, res) => {
       });
     }
 
+    // validasi password (min 6 karakter, mengandung huruf besar dan kecil)
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z]).{6,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        message: "Password harus terdiri dari minimal 6 karakter serta mengandung huruf besar dan huruf kecil",
+      });
+    }
+
     // cek email sudah terdaftar atau belum
     const existingUser = await User.findOne({
       where: { email },
@@ -49,6 +56,8 @@ router.post("/register", async (req, res) => {
       });
     }
 
+    const userRole = (role && allowedRoles.includes(role)) ? role : "customer";
+
     // hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -57,7 +66,7 @@ router.post("/register", async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: role || "customer",
+      role: userRole,
     });
 
     res.status(201).json({
@@ -132,11 +141,21 @@ router.post("/login", async (req, res) => {
 });
 
 // profile & role-based routes
-router.get("/profile", verifyToken, (req, res) => {
-  res.json({
-    message: "Profile berhasil diakses",
-    user: req.user,
-  });
+router.get("/profile", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id, {
+      attributes: ["id", "name", "email", "role"],
+    });
+    if (!user) {
+      return res.status(404).json({ message: "User tidak ditemukan" });
+    }
+    res.json({
+      message: "Profile berhasil diakses",
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 // logout semua role
@@ -162,5 +181,4 @@ router.get("/provider", verifyToken, checkRole(["provider"]), (req, res) => {
   });
 });
 
-// export router
 module.exports = router;

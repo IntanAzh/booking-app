@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, Users, Calendar, Settings, Bell, Search, 
+  LayoutDashboard, Users, Calendar, Settings, Bell, 
   LogOut, Briefcase, ListOrdered, CalendarDays, Clock, DollarSign, TrendingUp
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
@@ -67,15 +67,7 @@ const AdminLayout = () => {
       {/* Main Content */}
       <main className="flex-1 flex flex-col ml-64 min-h-screen relative">
         {/* Header */}
-        <header className="h-16 bg-white border-b border-slate-200 flex justify-between items-center px-8 shadow-sm sticky top-0 z-10">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search..." 
-              className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 w-64 transition-all"
-            />
-          </div>
+        <header className="h-16 bg-white border-b border-slate-200 flex justify-end items-center px-8 shadow-sm sticky top-0 z-10">
           <div className="flex items-center gap-6">
             <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
               <Bell size={20} />

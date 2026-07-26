@@ -37,8 +37,8 @@ const Payments = () => {
     },
     { 
       header: 'Metode', 
-      accessor: 'payment_method',
-      render: (row) => <span className="uppercase text-slate-500 font-medium">{row.payment_method}</span>
+      accessor: 'method',
+      render: (row) => <span className="uppercase text-slate-500 font-medium">{row.method || row.payment_method || '-'}</span>
     },
     { 
       header: 'Status', 

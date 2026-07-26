@@ -13,7 +13,7 @@ export const paymentService = {
   },
   
   processPayment: async (paymentData) => {
-    const response = await api.post('/payments', paymentData);
+    const response = await api.post('/payments/simulate', paymentData);
     return response.data;
   },
   

@@ -39,7 +39,7 @@ const ProviderBookings = () => {
     { 
       header: 'Pelanggan', 
       accessor: 'customer',
-      render: (row) => <div className="font-medium text-slate-900">{row.user?.name || '-'}</div>
+      render: (row) => <div className="font-medium text-slate-900">{row.customer?.name || row.user?.name || '-'}</div>
     },
     { 
       header: 'Layanan', 
@@ -48,11 +48,10 @@ const ProviderBookings = () => {
     },
     { 
       header: 'Tanggal & Waktu', 
-      accessor: 'booking_date',
+      accessor: 'start_time',
       render: (row) => (
         <span>
-          {new Date(row.booking_date).toLocaleDateString()}
-          {/* Di produksi nyata, gabungkan dengan start_time dari schedule/slot */}
+          {row.start_time ? new Date(row.start_time).toLocaleString('id-ID') : '-'}
         </span>
       )
     },
