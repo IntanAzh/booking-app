@@ -4,7 +4,7 @@ services:
     container_name: booking_mysql
     restart: unless-stopped
     env_file:
-      - .env.docker
+      - ./backend/.env.docker
     ports:
       - "3306:3306"
     volumes:
@@ -30,7 +30,7 @@ services:
       mysql:
         condition: service_healthy
     env_file:
-      - .env.docker
+      - ./backend/.env.docker
     ports:
       - "3000:3000"
 
