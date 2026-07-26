@@ -375,36 +375,54 @@ const LandingPage = () => {
             {filteredServices.map((service) => (
               <div 
                 key={service.id}
-                className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
+                className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
               >
                 <div>
-                  <div className="flex justify-between items-start mb-3">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-primary-50 text-primary-700">
+                  {/* Service Image Banner */}
+                  <div className="w-full h-48 bg-slate-100 relative overflow-hidden">
+                    {service.image_url ? (
+                      <img 
+                        src={service.image_url} 
+                        alt={service.name} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-tr from-slate-100 to-slate-200 text-slate-400">
+                        <Sparkles size={32} className="mb-1 text-slate-300" />
+                        <span className="text-xs font-semibold">Bookify Premium Service</span>
+                      </div>
+                    )}
+                    
+                    <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold uppercase bg-white/90 backdrop-blur-md text-primary-700 shadow-sm">
                       {service.category?.name || 'Umum'}
-                    </span>
-                    <span className="text-xl font-extrabold text-green-600">
-                      ${service.price}
                     </span>
                   </div>
 
-                  <h3 className="text-xl font-bold text-slate-900 group-hover:text-primary-600 transition-colors mb-2">
-                    {service.name}
-                  </h3>
+                  <div className="p-6">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-xl font-bold text-slate-900 group-hover:text-primary-600 transition-colors">
+                        {service.name}
+                      </h3>
+                      <span className="text-xl font-extrabold text-green-600 shrink-0 ml-2">
+                        ${service.price}
+                      </span>
+                    </div>
 
-                  <p className="text-slate-600 text-xs sm:text-sm line-clamp-3 mb-6">
-                    {service.description || 'Tidak ada deskripsi layanan.'}
-                  </p>
+                    <p className="text-slate-600 text-xs sm:text-sm line-clamp-3 mb-4">
+                      {service.description || 'Tidak ada deskripsi layanan.'}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-slate-500 text-xs font-medium">
+                <div className="px-6 pb-6 pt-0 flex items-center justify-between border-t border-slate-100 mt-auto">
+                  <div className="flex items-center gap-1.5 text-slate-500 text-xs font-medium pt-3">
                     <Clock size={16} className="text-primary-500" />
                     <span>{service.duration} Menit</span>
                   </div>
 
                   <Link 
                     to={user ? "/customer/bookings" : "/login"}
-                    className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm inline-flex items-center gap-1"
+                    className="mt-3 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm inline-flex items-center gap-1"
                   >
                     Pesan Sekarang
                   </Link>

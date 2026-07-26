@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Upload, Image as ImageIcon } from 'lucide-react';
 import DataTable from '../../components/common/DataTable';
 import { serviceApi } from '../../services/serviceApi';
 import { categoryService } from '../../services/categoryService';
 import { AuthContext } from '../../context/AuthContext';
+import { uploadImageToSupabase, isSupabaseConfigured } from '../../services/supabaseService';
 
 const ProviderServices = () => {
   const { user } = useContext(AuthContext);
@@ -22,6 +23,7 @@ const ProviderServices = () => {
     price: '',
     duration: 30,
     category_id: '',
+    image_url: '',
   });
 
   useEffect(() => {
@@ -64,6 +66,7 @@ const ProviderServices = () => {
       price: '',
       duration: 30,
       category_id: categories[0]?.id || '',
+      image_url: '',
     });
     setFormError(null);
     setShowModal(true);
@@ -77,6 +80,7 @@ const ProviderServices = () => {
       price: row.price || '',
       duration: row.duration || 30,
       category_id: row.category_id || (categories[0]?.id || ''),
+      image_url: row.image_url || '',
     });
     setFormError(null);
     setShowModal(true);
@@ -85,6 +89,74 @@ const ProviderServices = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const compressImage = (file, maxWidth = 1000, quality = 0.8) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressedBase64);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setFormError('Ukuran file foto terlalu besar (Maksimal 5MB). Silakan pilih berkas lain.');
+        return;
+      }
+
+      setFormError(null);
+      setUploadingImage(true);
+
+      try {
+        if (isSupabaseConfigured) {
+          try {
+            // Upload directly to Supabase Storage and get public URL
+            const publicUrl = await uploadImageToSupabase(file);
+            setFormData((prev) => ({ ...prev, image_url: publicUrl }));
+          } catch (supaErr) {
+            console.warn('Supabase upload failed, falling back to Base64:', supaErr.message);
+            const compressedDataUrl = await compressImage(file);
+            setFormData((prev) => ({ ...prev, image_url: compressedDataUrl }));
+            setFormError(supaErr.message);
+          }
+        } else {
+          // Fallback to compressed Base64 Data URL if Supabase credentials are not set
+          const compressedDataUrl = await compressImage(file);
+          setFormData((prev) => ({ ...prev, image_url: compressedDataUrl }));
+        }
+      } catch (err) {
+        console.error('Gagal mengunggah foto:', err);
+        setFormError(err.message || 'Gagal mengunggah berkas foto');
+      } finally {
+        setUploadingImage(false);
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -119,6 +191,7 @@ const ProviderServices = () => {
         price: '',
         duration: 30,
         category_id: categories[0]?.id || '',
+        image_url: '',
       });
       fetchServices();
     } catch (err) {
@@ -134,13 +207,26 @@ const ProviderServices = () => {
         await serviceApi.deleteService(row.id);
         setServices(services.filter((s) => s.id !== row.id));
       } catch (err) {
-        alert('Gagal menghapus: ' + err.message);
+        alert('Gagal menghapus: ' + (err.response?.data?.message || err.message));
       }
     }
   };
 
   const columns = [
     { header: 'ID', accessor: 'id' },
+    {
+      header: 'Foto',
+      accessor: 'image_url',
+      render: (row) => (
+        <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+          {row.image_url ? (
+            <img src={row.image_url} alt={row.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-[10px] text-slate-400 font-bold">No Image</span>
+          )}
+        </div>
+      )
+    },
     { 
       header: 'Nama Layanan', 
       accessor: 'name',
@@ -289,6 +375,52 @@ const ProviderServices = () => {
                   rows="3"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                 />
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-sm font-semibold text-slate-700">Foto Layanan</label>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                    isSupabaseConfigured ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    {isSupabaseConfigured ? '⚡ Supabase Storage Active' : 'ℹ️ Base64 Mode'}
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  {uploadingImage ? (
+                    <div className="border-2 border-dashed border-primary-300 rounded-xl p-6 text-center bg-primary-50/50 flex flex-col items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                      <span className="text-xs font-semibold text-primary-700">Mengunggah foto ke Supabase Storage...</span>
+                    </div>
+                  ) : formData.image_url ? (
+                    <div className="relative w-full h-36 rounded-xl border border-slate-200 overflow-hidden bg-slate-50 group">
+                      <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, image_url: '' }))}
+                        className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg opacity-90 hover:opacity-100 shadow-md text-xs flex items-center gap-1"
+                      >
+                        <X size={14} /> Hapus Foto
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center hover:border-blue-500 transition-colors bg-slate-50">
+                      <ImageIcon size={32} className="mx-auto text-slate-400 mb-2" />
+                      <label className="cursor-pointer text-xs text-blue-600 font-bold hover:underline flex items-center justify-center gap-1">
+                        <Upload size={14} /> Upload Foto ke Supabase Storage
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={handleImageFileChange} 
+                          className="hidden" 
+                          disabled={uploadingImage}
+                        />
+                      </label>
+                      <p className="text-[11px] text-slate-400 mt-1">Format PNG, JPG, GIF (Maks. 5MB)</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
