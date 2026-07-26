@@ -20,6 +20,7 @@ const paymentRoutes = require("./routes/payments");
 const pricingRoutes = require("./routes/pricing");
 const customerRoutes = require("./routes/customers");
 const myBookingRoutes = require("./routes/myBookings");
+const categoryRoutes = require("./routes/categories");
 
 // import database connection
 const sequelize = require("./config/database");
@@ -62,6 +63,7 @@ app.use("/api/my-bookings", myBookingRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/pricing", pricingRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/categories", categoryRoutes);
 
 const syncOptions = process.env.DB_SYNC_ALTER === "true" ? { alter: true } : {};
 

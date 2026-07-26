@@ -6,7 +6,14 @@ const { verifyToken, checkRole } = require("../middlewares/authMiddleware");
 
 router.get("/", verifyToken, checkRole(["admin"]), async (req, res) => {
   try {
+    const { role } = req.query;
+    const where = {};
+    if (role) {
+      where.role = role;
+    }
+
     const users = await User.findAll({
+      where,
       attributes: ["id", "name", "email", "role", "createdAt"],
     });
 
