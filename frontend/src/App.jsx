@@ -24,10 +24,15 @@ import Pricing from './pages/admin/Pricing';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 
+import CustomerLayout from './components/layout/CustomerLayout';
+import CustomerBookings from './pages/customer/Bookings';
+import CustomerPayments from './pages/customer/Payments';
+
 // Helper to get correct home dashboard based on role
 const getDashboardByRole = (role) => {
   if (role === 'admin') return '/admin/dashboard';
   if (role === 'provider') return '/provider/dashboard';
+  if (role === 'customer') return '/customer/bookings';
   return '/';
 };
 
@@ -84,7 +89,23 @@ function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
       <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+      <Route path="/my-bookings" element={<Navigate to="/customer/bookings" replace />} />
       
+      {/* Protected Routes for Customer */}
+      <Route 
+        path="/customer" 
+        element={
+          <ProtectedRoute allowedRoles={['customer']}>
+            <CustomerLayout />
+          </ProtectedRoute>
+        } 
+      >
+        <Route index element={<Navigate to="bookings" replace />} />
+        <Route path="bookings" element={<CustomerBookings />} />
+        <Route path="payments" element={<CustomerPayments />} />
+        <Route path="*" element={<div className="p-8 text-slate-500">Modul Customer sedang dalam pengembangan...</div>} />
+      </Route>
+
       {/* Protected Routes for Admin */}
       <Route 
         path="/admin" 
