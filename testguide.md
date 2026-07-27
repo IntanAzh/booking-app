@@ -51,52 +51,11 @@ Body:
 {
   "name": "Customer Satu",
   "email": "customer@example.com",
-  "password": "password123",
-  "role": "customer"
+  "password": "password123"
 }
 ```
 
-### Register provider
-
-Method: `POST`
-
-URL:
-
-```text
-{{base_url}}/api/auth/register
-```
-
-Body:
-
-```json
-{
-  "name": "Provider Satu",
-  "email": "provider@example.com",
-  "password": "password123",
-  "role": "provider"
-}
-```
-
-### Register admin
-
-Method: `POST`
-
-URL:
-
-```text
-{{base_url}}/api/auth/register
-```
-
-Body:
-
-```json
-{
-  "name": "Admin Satu",
-  "email": "admin@example.com",
-  "password": "password123",
-  "role": "admin"
-}
-```
+Catatan: `POST /api/auth/register` selalu membuat user `customer`. Akun `provider` dibuat oleh admin lewat `POST /api/providers`. Akun `admin` dibuat lewat seed/setup internal.
 
 ### Login
 
@@ -383,16 +342,31 @@ Catatan: provider tidak bisa dihapus jika masih punya booking aktif dengan statu
 
 ## 5. Services
 
-Catatan: `category_id` dan `provider_id` harus sudah ada sebelum membuat service. Jika category kosong atau provider kosong, API akan menolak create service.
+Catatan: `category_id` harus sudah ada sebelum membuat service. Jika category kosong, API akan menolak create service.
 
-Untuk admin, `provider_id` wajib dikirim dan harus mengarah ke user dengan role `provider`. Untuk provider login, `provider_id` otomatis memakai ID dari token provider.
+Create, update, dan delete service hanya dapat dilakukan oleh provider. `provider_id` otomatis memakai ID dari token provider.
 
-Contoh SQL:
+Provider dapat membuat category lewat endpoint category:
 
-```sql
-INSERT INTO categories (name, createdAt, updatedAt)
-VALUES ('Kecantikan', NOW(), NOW());
+```text
+POST {{base_url}}/api/categories
 ```
+
+Headers:
+
+```text
+Authorization: Bearer {{provider_token}}
+```
+
+Body:
+
+```json
+{
+  "name": "Kecantikan"
+}
+```
+
+Simpan `id` category dari response sebagai `category_id`. `slug` dibuat otomatis dari `name`.
 
 Pastikan provider sudah dibuat dari endpoint:
 
@@ -402,7 +376,7 @@ POST {{base_url}}/api/providers
 
 ### Create service
 
-Role: `admin` atau `provider`
+Role: `provider`
 
 Method: `POST`
 
@@ -424,7 +398,6 @@ Body:
 {
   "category_id": 1,
   "name": "Hair Spa",
-  "slug": "hair-spa",
   "description": "Perawatan rambut lengkap",
   "price": 150000,
   "duration": 60,
@@ -432,20 +405,7 @@ Body:
 }
 ```
 
-Jika admin ingin menentukan provider:
-
-```json
-{
-  "category_id": 1,
-  "provider_id": 2,
-  "name": "Makeup Party",
-  "slug": "makeup-party",
-  "description": "Makeup untuk acara pesta",
-  "price": 300000,
-  "duration": 90,
-  "image_url": "https://example.com/makeup.jpg"
-}
-```
+Catatan: `slug` service dibuat otomatis dari `name`.
 
 ### List services
 
@@ -476,7 +436,7 @@ URL:
 
 ### Update service
 
-Role: `admin` atau provider pemilik layanan
+Role: provider pemilik layanan
 
 Method: `PUT`
 
@@ -499,7 +459,7 @@ Body:
 
 ### Delete service
 
-Role: `admin`
+Role: provider pemilik layanan
 
 Method: `DELETE`
 
@@ -519,7 +479,7 @@ monday, tuesday, wednesday, thursday, friday, saturday, sunday
 
 ### Create schedule
 
-Role: `admin` atau `provider`
+Role: `provider`
 
 Method: `POST`
 
@@ -547,18 +507,7 @@ Body:
 }
 ```
 
-Jika admin ingin menentukan provider:
-
-```json
-{
-  "provider_id": 2,
-  "service_id": 1,
-  "day": "monday",
-  "start_time": "09:00:00",
-  "end_time": "17:00:00",
-  "is_available": true
-}
-```
+Catatan: `provider_id` otomatis memakai ID provider dari token.
 
 ### List schedule
 
@@ -591,7 +540,7 @@ URL:
 
 ### Update schedule
 
-Role: `admin` atau provider pemilik jadwal
+Role: provider pemilik jadwal
 
 Method: `PUT`
 
@@ -613,7 +562,7 @@ Body:
 
 ### Delete schedule
 
-Role: `admin` atau provider pemilik jadwal
+Role: provider pemilik jadwal
 
 Method: `DELETE`
 
@@ -1435,18 +1384,20 @@ Role `admin` akan mendapat dashboard admin, sedangkan role `provider` akan menda
 
 ## 11. Urutan testing yang disarankan
 
-1. Register admin, provider, dan customer.
-2. Login masing-masing user, simpan token.
-3. Buat category langsung dari database.
-4. Login provider, buat service.
-5. Buat schedule untuk service.
-6. Buat slot waktu.
-7. Login customer, buat booking memakai `slot_id`.
-8. Test booking kedua pada slot atau waktu yang sama untuk memastikan validasi bentrok berjalan.
-9. Simulasikan pembayaran sukses.
-10. Login provider/admin, ubah status booking menjadi `completed`.
-11. Cek dashboard.
-12. Buat booking baru, lalu test cancel booking.
+1. Seed admin atau gunakan akun admin yang sudah ada.
+2. Login admin dan buat provider lewat `POST /api/providers`.
+3. Register customer lewat `POST /api/auth/register`.
+4. Login provider dan customer, simpan token.
+5. Login provider, buat category jika diperlukan.
+6. Login provider, buat service.
+7. Buat schedule untuk service.
+8. Buat slot waktu.
+9. Login customer, buat booking memakai `slot_id`.
+10. Test booking kedua pada slot atau waktu yang sama untuk memastikan validasi bentrok berjalan.
+11. Simulasikan pembayaran sukses.
+12. Login provider, ubah status booking menjadi `completed`.
+13. Cek dashboard.
+14. Buat booking baru, lalu test cancel booking.
 
 ## 12. Variable Postman yang disarankan
 

@@ -5,8 +5,8 @@
 Aplikasi ini adalah backend booking layanan berbasis Express, Sequelize, MySQL, dan JWT. Fitur yang sudah disiapkan:
 
 - Role `customer`, `provider`, dan `admin`.
-- Register, login, logout, profile, JWT, dan role guard.
-- CRUD data layanan.
+- Register publik khusus customer, login, logout, profile, JWT, dan role guard.
+- CRUD category, layanan, dan jadwal dilakukan provider; admin hanya read-only untuk katalog operasional tersebut.
 - CRUD khusus data penyedia layanan.
 - Jadwal layanan per provider dan service.
 - Slot waktu per provider, service, dan tanggal.
@@ -82,7 +82,8 @@ booking-app/
 - `src/models/booking.js`: ditambah `provider_id`, `slot_id`, `payment_status`, dan `cancellation_reason`.
 - `src/models/service.js`: ditambah `provider_id` agar layanan bisa dikaitkan ke penyedia.
 - `src/routes/providers.js`: CRUD penyedia layanan, profil provider login, dan list layanan milik provider.
-- `src/routes/schedules.js`: CRUD jadwal layanan.
+- `src/routes/categories.js`: list category publik; create/update/delete khusus provider dengan slug otomatis.
+- `src/routes/schedules.js`: CRUD jadwal layanan khusus provider pemilik jadwal.
 - `src/routes/slots.js`: CRUD slot waktu.
 - `src/routes/payments.js`: simulasi pembayaran, detail pembayaran, list pembayaran, dan refund.
 - `src/routes/pricing.js`: kalkulasi dynamic pricing dan CRUD pricing rules.
@@ -97,7 +98,7 @@ booking-app/
 
 ### Auth
 
-- `POST /api/auth/register`
+- `POST /api/auth/register` - selalu membuat user `customer`
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/auth/profile`
@@ -128,8 +129,22 @@ booking-app/
 Create dan update service memvalidasi relasi wajib:
 
 - `category_id` harus ada di table `categories`.
-- `provider_id` harus ada di table `users` dengan role `provider`.
-- Jika category atau provider belum ada, service tidak bisa dibuat.
+- `provider_id` otomatis memakai ID provider dari token.
+- Jika category belum ada, service tidak bisa dibuat.
+- Create, update, dan delete service hanya untuk provider. Admin dapat melihat daftar service tetapi tidak membuat atau mengubah service.
+- `slug` service dibuat otomatis dari `name`.
+
+### Categories
+
+- `GET /api/categories`
+- `GET /api/categories/:id`
+- `POST /api/categories`
+- `PUT /api/categories/:id`
+- `DELETE /api/categories/:id`
+
+Create, update, dan delete category hanya untuk provider. Admin dapat melihat daftar category tetapi tidak membuat atau mengubah category.
+
+Category hanya membutuhkan `name` dari UI. Backend membuat `slug` otomatis dari `name`.
 
 ### Jadwal dan slot
 
@@ -175,16 +190,17 @@ Create dan update service memvalidasi relasi wajib:
 
 ## Alur booking
 
-1. Admin/provider membuat layanan.
-2. Admin/provider membuat jadwal layanan.
-3. Admin/provider membuat slot waktu.
-4. Customer login dan membuat booking memakai `slot_id`, atau memakai `provider_id` + `start_time`.
-5. Sistem mengecek provider, service, status slot, kapasitas slot, dan booking lain yang overlap.
-6. Sistem menghitung dynamic pricing.
-7. Booking dibuat dengan status `pending` dan `payment_status` `unpaid`.
-8. Customer/admin/provider melakukan simulasi pembayaran melalui `/api/payments/simulate`.
-9. Jika pembayaran sukses, booking menjadi `confirmed` dan `payment_status` menjadi `paid`.
-10. Booking bisa dibatalkan melalui `PATCH /api/bookings/:id/cancel`; slot kembali `available`.
+1. Provider membuat category jika diperlukan.
+2. Provider membuat layanan.
+3. Provider membuat jadwal layanan.
+4. Provider membuat slot waktu.
+5. Customer login dan membuat booking memakai `slot_id`, atau memakai `provider_id` + `start_time`.
+6. Sistem mengecek provider, service, status slot, kapasitas slot, dan booking lain yang overlap.
+7. Sistem menghitung dynamic pricing.
+8. Booking dibuat dengan status `pending` dan `payment_status` `unpaid`.
+9. Customer/admin/provider melakukan simulasi pembayaran melalui `/api/payments/simulate`.
+10. Jika pembayaran sukses, booking menjadi `confirmed` dan `payment_status` menjadi `paid`.
+11. Booking bisa dibatalkan melalui `PATCH /api/bookings/:id/cancel`; slot kembali `available`.
 
 ## Perhitungan Slot Waktu
 
@@ -237,6 +253,16 @@ PUT    /api/schedules/:id
 DELETE /api/schedules/:id
 ```
 
+Create, update, dan delete jadwal hanya dapat dilakukan oleh provider pemilik jadwal. Admin dapat melihat jadwal tetapi tidak membuat atau mengubah jadwal.
+
+## Migrasi Category Slug
+
+Table `categories` memiliki kolom `slug`, `description`, dan `image_url`. Jika database lama belum memiliki kolom tersebut dan muncul error terkait kolom category, jalankan file SQL:
+
+```text
+database/migrate_categories_slug.sql
+```
+
 ## Dynamic pricing
 
 Pricing dihitung di `src/utils/pricing.js` dan bisa dikelola lewat `/api/pricing/rules`.
@@ -251,6 +277,13 @@ Response booking mengembalikan `pricing.breakdown` agar perhitungan bisa dilihat
 ## Catatan setup database
 
 Project memakai `sequelize.sync()` di `src/app.js`, sehingga tabel dari model akan dibuat otomatis saat server berjalan. Untuk setup manual, jalankan isi `database/schema.sql` di MySQL pada database `booking_db`.
+
+Untuk database lama, jalankan migration berikut sesuai kebutuhan:
+
+```text
+database/migrate_service_schedules_day.sql
+database/migrate_categories_slug.sql
+```
 
 Jika database lama sudah terlanjur punya tabel dan ingin Sequelize menyesuaikan kolom baru saat development, tambahkan:
 

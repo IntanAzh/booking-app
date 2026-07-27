@@ -156,10 +156,11 @@ http://IP_VPS_ANDA:3000/api-docs
 Buka domain Vercel Anda di browser (misal `https://booking-app-xyz.vercel.app`):
 
 1. **Uji Registrasi & Login**:
-   - Buat akun baru sebagai Customer atau Provider.
+   - Buat akun baru sebagai Customer.
+   - Login admin, lalu buat akun Provider dari menu Providers.
    - Pastikan login berhasil dan JWT token tersimpan di browser.
 2. **Uji Unggah Foto Layanan (Supabase Storage)**:
-   - Login sebagai Provider atau Admin.
+   - Login sebagai Provider.
    - Tambah layanan baru dan unggah foto layanan.
    - Pastikan gambar berhasil diunggah dan tampil di halaman katalog layanan.
 3. **Uji Alur Pemesanan (Booking)**:

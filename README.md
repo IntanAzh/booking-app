@@ -7,9 +7,9 @@
 Aplikasi ini menyediakan sistem penjadwalan layanan yang fleksibel, validasi slot waktu *real-time* untuk mencegah *overbooking*, kalkulasi harga dinamis (*dynamic pricing*) berdasarkan jam sibuk atau akhir pekan, simulasi pembayaran, hingga dasbor analitik pendapatan dan integrasi cloud storage untuk penyimpanan media/gambar layanan.
 
 ### 🌟 Fitur Utama
-- **Sistem Otentikasi & Multi-Role**: Registrasi, Login, Profile, JWT Authentication dengan hak akses terbatas (`customer`, `provider`, `admin`).
-- **Manajemen Layanan & Provider**: Pengelolaan katalog layanan per kategori dan profil penyedia jasa.
-- **Penjadwalan & Slot Waktu Akurat**: Pembuatan jadwal mingguan, slot waktu per tanggal, serta pengecekan ketersediaan slot bebas bentrok (*overlap check*).
+- **Sistem Otentikasi & Multi-Role**: Registrasi publik hanya untuk `customer`; akun `provider` dibuat oleh admin; JWT Authentication dengan hak akses terbatas (`customer`, `provider`, `admin`).
+- **Manajemen Layanan & Provider**: Provider mengelola kategori, katalog layanan, jadwal, dan slot miliknya; admin mengelola data provider dan memantau katalog secara read-only.
+- **Penjadwalan & Slot Waktu Akurat**: Provider membuat jadwal mingguan, slot waktu per tanggal, serta pengecekan ketersediaan slot bebas bentrok (*overlap check*).
 - **Dynamic Pricing Engine**: Penyesuaian harga otomatis berdasarkan hari libur/weekend, *peak hour*, dan jumlah permintaan (*demand*).
 - **Simulasi Pembayaran & Refund**: Alur konfirmasi booking otomatis, simulasi transaksi pembayaran, serta pembatalan booking dengan pengembalian slot.
 - **Supabase Cloud Storage Integration**: Penyimpanan gambar layanan terpusat menggunakan Supabase Storage.
@@ -128,6 +128,11 @@ booking-app/
    DB_SYNC_ALTER=true
    ```
 4. Buat database `booking_db` di MySQL Anda, atau jalankan file `backend/database/schema.sql`.
+   Jika memakai database lama, jalankan migration yang relevan:
+   ```text
+   backend/database/migrate_service_schedules_day.sql
+   backend/database/migrate_categories_slug.sql
+   ```
 5. Jalankan server backend dalam mode development:
    ```bash
    npm run dev
@@ -216,6 +221,7 @@ http://localhost:3000/api-docs
 
 ## 📚 Referensi Dokumen Tambahan
 - **[STRUKTUR_DAN_PENJELASAN.md](STRUKTUR_DAN_PENJELASAN.md)**: Detail alur kerja booking, dynamic pricing, dan skema database.
+- **[PRD.md](PRD.md)**: Ringkasan kebutuhan produk, aturan role, dan acceptance criteria.
 - **[DOCKER_GUIDE.md](DOCKER_GUIDE.md)**: Panduan penanganan container Docker.
 - **[DEPLOY_GUIDE.md](DEPLOY_GUIDE.md)**: Instruksi deployment ke server VPS / Cloud Production.
 - **[testguide.md](testguide.md)**: Skenario pengujian API dan petunjuk pengujian fitur.

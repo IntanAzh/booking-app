@@ -16,6 +16,7 @@ const swaggerDocument = {
     { name: "Auth", description: "Authentication and role checks" },
     { name: "Posts", description: "Simple post endpoints" },
     { name: "Users", description: "User management" },
+    { name: "Categories", description: "Provider-managed service categories" },
     { name: "Services", description: "Service catalog" },
     { name: "Providers", description: "Provider listing and management" },
     { name: "Schedules", description: "Service schedules" },
@@ -49,7 +50,7 @@ const swaggerDocument = {
     "/api/auth/register": {
       post: {
         tags: ["Auth"],
-        summary: "Register a new user",
+        summary: "Register a new customer",
         requestBody: {
           required: true,
           content: {
@@ -64,8 +65,7 @@ const swaggerDocument = {
                     format: "email",
                     example: "alya@example.com",
                   },
-                  password: { type: "string", example: "secret123" },
-                  role: { type: "string", example: "customer" },
+                  password: { type: "string", example: "Secret123" },
                 },
               },
             },
@@ -90,7 +90,7 @@ const swaggerDocument = {
                 required: ["email", "password"],
                 properties: {
                   email: { type: "string", format: "email" },
-                  password: { type: "string" },
+                  password: { type: "string", example: "Secret123" },
                 },
               },
             },
@@ -263,6 +263,93 @@ const swaggerDocument = {
         responses: { 200: { description: "User berhasil dihapus" } },
       },
     },
+    "/api/categories": {
+      get: {
+        tags: ["Categories"],
+        summary: "List categories",
+        responses: { 200: { description: "Data categories" } },
+      },
+      post: {
+        tags: ["Categories"],
+        summary: "Create category (provider only)",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["name"],
+                properties: {
+                  name: { type: "string" },
+                  description: { type: "string" },
+                  image_url: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: { 201: { description: "Category berhasil dibuat" } },
+      },
+    },
+    "/api/categories/{id}": {
+      get: {
+        tags: ["Categories"],
+        summary: "Get category by id",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
+        responses: { 200: { description: "Detail category" } },
+      },
+      put: {
+        tags: ["Categories"],
+        summary: "Update category (provider only)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  description: { type: "string" },
+                  image_url: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: { 200: { description: "Category berhasil diupdate" } },
+      },
+      delete: {
+        tags: ["Categories"],
+        summary: "Delete category (provider only)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
+        responses: { 200: { description: "Category berhasil dihapus" } },
+      },
+    },
     "/api/services": {
       get: {
         tags: ["Services"],
@@ -271,7 +358,7 @@ const swaggerDocument = {
       },
       post: {
         tags: ["Services"],
-        summary: "Create a service",
+        summary: "Create a service (provider only)",
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -282,9 +369,7 @@ const swaggerDocument = {
                 required: ["category_id", "name", "price", "duration"],
                 properties: {
                   category_id: { type: "integer" },
-                  provider_id: { type: "integer" },
                   name: { type: "string" },
-                  slug: { type: "string" },
                   description: { type: "string" },
                   price: { type: "number" },
                   duration: { type: "number" },
@@ -313,7 +398,7 @@ const swaggerDocument = {
       },
       put: {
         tags: ["Services"],
-        summary: "Update service",
+        summary: "Update service (provider owner only)",
         security: [{ bearerAuth: [] }],
         parameters: [
           {
@@ -331,9 +416,7 @@ const swaggerDocument = {
                 type: "object",
                 properties: {
                   category_id: { type: "integer" },
-                  provider_id: { type: "integer" },
                   name: { type: "string" },
-                  slug: { type: "string" },
                   description: { type: "string" },
                   price: { type: "number" },
                   duration: { type: "number" },
@@ -347,7 +430,7 @@ const swaggerDocument = {
       },
       delete: {
         tags: ["Services"],
-        summary: "Delete service",
+        summary: "Delete service (provider owner only)",
         security: [{ bearerAuth: [] }],
         parameters: [
           {
@@ -380,7 +463,7 @@ const swaggerDocument = {
                 properties: {
                   name: { type: "string" },
                   email: { type: "string", format: "email" },
-                  password: { type: "string" },
+                  password: { type: "string", example: "Secret123" },
                 },
               },
             },
@@ -447,6 +530,43 @@ const swaggerDocument = {
         responses: { 200: { description: "Provider berhasil dihapus" } },
       },
     },
+    "/api/providers/me": {
+      get: {
+        tags: ["Providers"],
+        summary: "Get logged-in provider profile",
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: "Profil provider" } },
+      },
+      put: {
+        tags: ["Providers"],
+        summary: "Update logged-in provider profile",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: false,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  email: { type: "string", format: "email" },
+                  password: { type: "string", example: "Secret123" },
+                },
+              },
+            },
+          },
+        },
+        responses: { 200: { description: "Profil provider berhasil diupdate" } },
+      },
+    },
+    "/api/providers/me/services": {
+      get: {
+        tags: ["Providers"],
+        summary: "List services owned by logged-in provider",
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: "Data layanan milik provider" } },
+      },
+    },
     "/api/schedules": {
       get: {
         tags: ["Schedules"],
@@ -455,7 +575,7 @@ const swaggerDocument = {
       },
       post: {
         tags: ["Schedules"],
-        summary: "Create schedule",
+        summary: "Create schedule (provider only)",
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -464,14 +584,12 @@ const swaggerDocument = {
               schema: {
                 type: "object",
                 required: [
-                  "provider_id",
                   "service_id",
                   "day",
                   "start_time",
                   "end_time",
                 ],
                 properties: {
-                  provider_id: { type: "integer" },
                   service_id: { type: "integer" },
                   day: { type: "string", example: "monday" },
                   start_time: { type: "string", format: "date-time" },
@@ -501,7 +619,7 @@ const swaggerDocument = {
       },
       put: {
         tags: ["Schedules"],
-        summary: "Update schedule",
+        summary: "Update schedule (provider owner only)",
         security: [{ bearerAuth: [] }],
         parameters: [
           {
@@ -518,7 +636,6 @@ const swaggerDocument = {
               schema: {
                 type: "object",
                 properties: {
-                  provider_id: { type: "integer" },
                   service_id: { type: "integer" },
                   day: { type: "string", example: "monday" },
                   start_time: { type: "string", format: "date-time" },
@@ -533,7 +650,7 @@ const swaggerDocument = {
       },
       delete: {
         tags: ["Schedules"],
-        summary: "Delete schedule",
+        summary: "Delete schedule (provider owner only)",
         security: [{ bearerAuth: [] }],
         parameters: [
           {
@@ -628,7 +745,7 @@ const swaggerDocument = {
       },
       delete: {
         tags: ["Slots"],
-        summary: "Block slot",
+        summary: "Delete slot",
         security: [{ bearerAuth: [] }],
         parameters: [
           {
@@ -638,7 +755,7 @@ const swaggerDocument = {
             schema: { type: "integer" },
           },
         ],
-        responses: { 200: { description: "Slot waktu berhasil diblokir" } },
+        responses: { 200: { description: "Slot waktu berhasil dihapus" } },
       },
     },
     "/api/bookings": {
@@ -860,6 +977,41 @@ const swaggerDocument = {
         ],
         responses: { 200: { description: "Detail payment" } },
       },
+      put: {
+        tags: ["Payments"],
+        summary: "Update payment status",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["status"],
+                properties: {
+                  status: {
+                    type: "string",
+                    enum: ["pending", "paid", "failed", "refunded"],
+                  },
+                  method: {
+                    type: "string",
+                    enum: ["cash", "transfer", "ewallet", "card"],
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: { 200: { description: "Payment berhasil diupdate" } },
+      },
     },
     "/api/payments/{id}/refund": {
       patch: {
@@ -976,6 +1128,20 @@ const swaggerDocument = {
           },
         },
         responses: { 200: { description: "Pricing rule berhasil diupdate" } },
+      },
+      delete: {
+        tags: ["Pricing"],
+        summary: "Delete pricing rule",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
+        responses: { 200: { description: "Pricing rule berhasil dihapus" } },
       },
     },
     "/api/dashboard": {

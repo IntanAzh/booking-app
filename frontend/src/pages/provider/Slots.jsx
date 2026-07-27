@@ -1,14 +1,42 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import { Plus, X } from 'lucide-react';
 import DataTable from '../../components/common/DataTable';
 import { slotService } from '../../services/slotService';
 import { serviceApi } from '../../services/serviceApi';
+import { scheduleService } from '../../services/scheduleService';
 import { AuthContext } from '../../context/AuthContext';
+
+const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+const dayLabels = {
+  sunday: 'Minggu',
+  monday: 'Senin',
+  tuesday: 'Selasa',
+  wednesday: 'Rabu',
+  thursday: 'Kamis',
+  friday: 'Jumat',
+  saturday: 'Sabtu',
+};
+
+const toDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const formatDateLabel = (dateStr) =>
+  new Date(`${dateStr}T00:00:00`).toLocaleDateString('id-ID', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
 
 const ProviderSlots = () => {
   const { user } = useContext(AuthContext);
   const [slots, setSlots] = useState([]);
   const [services, setServices] = useState([]);
+  const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -25,14 +53,7 @@ const ProviderSlots = () => {
     status: 'available',
   });
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchSlots();
-      fetchProviderServices();
-    }
-  }, [user]);
-
-  const fetchSlots = async () => {
+  const fetchSlots = useCallback(async () => {
     try {
       setLoading(true);
       const data = await slotService.getAllSlots({ provider_id: user.id });
@@ -42,20 +63,93 @@ const ProviderSlots = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
-  const fetchProviderServices = async () => {
+  const fetchProviderServices = useCallback(async () => {
     try {
       const data = await serviceApi.getAllServices({ provider_id: user.id });
       const svcList = data || [];
       setServices(svcList);
-      if (svcList.length > 0 && !formData.service_id) {
-        setFormData((prev) => ({ ...prev, service_id: svcList[0].id }));
-      }
+      setFormData((prev) =>
+        svcList.length > 0 && !prev.service_id
+          ? { ...prev, service_id: svcList[0].id }
+          : prev,
+      );
     } catch (err) {
       console.error('Gagal memuat layanan provider', err);
     }
-  };
+  }, [user?.id]);
+
+  const fetchProviderSchedules = useCallback(async () => {
+    try {
+      const res = await scheduleService.getAllSchedules({
+        provider_id: user.id,
+        is_available: true,
+      });
+      setSchedules(res.data || res || []);
+    } catch (err) {
+      console.error('Gagal memuat jadwal provider', err);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchSlots();
+      fetchProviderServices();
+      fetchProviderSchedules();
+    }
+  }, [user?.id, fetchSlots, fetchProviderServices, fetchProviderSchedules]);
+
+  const getAllowedDatesForService = useCallback(
+    (serviceId, daysAhead = 45) => {
+      const activeSchedules = schedules.filter(
+        (schedule) =>
+          Number(schedule.service_id) === Number(serviceId) &&
+          schedule.is_available,
+      );
+      const allowedDays = new Set(activeSchedules.map((schedule) => schedule.day));
+      const dates = [];
+      const cursor = new Date();
+      cursor.setHours(0, 0, 0, 0);
+
+      for (let i = 0; i < daysAhead; i += 1) {
+        const candidate = new Date(cursor);
+        candidate.setDate(cursor.getDate() + i);
+        const dayName = dayNames[candidate.getDay()];
+
+        if (allowedDays.has(dayName)) {
+          dates.push({
+            date: toDateString(candidate),
+            day: dayName,
+            label: formatDateLabel(toDateString(candidate)),
+          });
+        }
+      }
+
+      return dates;
+    },
+    [schedules],
+  );
+
+  const availableDates = useMemo(
+    () => getAllowedDatesForService(formData.service_id),
+    [formData.service_id, getAllowedDatesForService],
+  );
+
+  const selectedDateSchedules = schedules.filter(
+    (schedule) =>
+      Number(schedule.service_id) === Number(formData.service_id) &&
+      schedule.is_available &&
+      schedule.day === dayNames[new Date(`${formData.slot_date}T00:00:00`).getDay()],
+  );
+
+  useEffect(() => {
+    if (!showModal || !formData.service_id || availableDates.length === 0) return;
+    const currentDateIsAllowed = availableDates.some((item) => item.date === formData.slot_date);
+    if (!currentDateIsAllowed) {
+      setFormData((prev) => ({ ...prev, slot_date: availableDates[0].date }));
+    }
+  }, [showModal, formData.service_id, formData.slot_date, availableDates]);
 
   const extractTimeStr = (val) => {
     if (!val) return '09:00';
@@ -98,6 +192,16 @@ const ProviderSlots = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'service_id') {
+      const nextDates = getAllowedDatesForService(value);
+      setFormData((prev) => ({
+        ...prev,
+        service_id: value,
+        slot_date: nextDates[0]?.date || prev.slot_date,
+      }));
+      return;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -107,6 +211,16 @@ const ProviderSlots = () => {
 
     if (!formData.service_id || !formData.slot_date || !formData.start_time || !formData.end_time) {
       setFormError('Layanan, tanggal, jam mulai, dan jam selesai wajib diisi');
+      return;
+    }
+
+    if (availableDates.length === 0) {
+      setFormError('Layanan ini belum memiliki jadwal aktif. Buat jadwal terlebih dahulu.');
+      return;
+    }
+
+    if (!availableDates.some((item) => item.date === formData.slot_date)) {
+      setFormError('Tanggal slot harus mengikuti hari pada jadwal aktif layanan.');
       return;
     }
 
@@ -262,15 +376,52 @@ const ProviderSlots = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Tanggal Slot</label>
-                <input 
-                  type="date" 
-                  name="slot_date"
-                  value={formData.slot_date}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                />
+                {availableDates.length === 0 ? (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                    Layanan ini belum memiliki jadwal aktif. Buat jadwal layanan terlebih dahulu.
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto rounded-xl border border-slate-200 p-2 bg-slate-50">
+                      {availableDates.map((item) => (
+                        <button
+                          key={item.date}
+                          type="button"
+                          onClick={() => setFormData((prev) => ({ ...prev, slot_date: item.date }))}
+                          className={`px-3 py-2 rounded-lg text-xs font-semibold border transition-colors text-left ${
+                            formData.slot_date === item.date
+                              ? 'bg-blue-600 text-white border-blue-600'
+                              : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300'
+                          }`}
+                        >
+                          <span className="block">{item.label}</span>
+                          <span className={formData.slot_date === item.date ? 'text-blue-100' : 'text-slate-400'}>
+                            {item.date}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Tanggal yang muncul hanya hari masa depan sesuai jadwal aktif layanan.
+                    </p>
+                  </>
+                )}
               </div>
+
+              {selectedDateSchedules.length > 0 && (
+                <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+                  <div className="font-bold mb-1">
+                    Jadwal aktif {dayLabels[selectedDateSchedules[0].day] || selectedDateSchedules[0].day}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedDateSchedules.map((schedule) => (
+                      <span key={schedule.id} className="rounded-lg bg-white px-2 py-1 border border-blue-100">
+                        {String(schedule.start_time).substring(0, 5)} - {String(schedule.end_time).substring(0, 5)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>

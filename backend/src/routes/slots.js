@@ -5,6 +5,7 @@ const { Op } = require("sequelize");
 const Booking = require("../models/booking");
 const TimeSlot = require("../models/timeSlot");
 const Service = require("../models/service");
+const ServiceSchedule = require("../models/serviceSchedule");
 const User = require("../models/user");
 const { verifyToken, checkRole } = require("../middlewares/authMiddleware");
 
@@ -40,6 +41,96 @@ const parseSlotDateTime = (dateStr, timeStr) => {
   const cleanDate = dateStr ? dateStr : new Date().toISOString().split("T")[0];
   const cleanTime = timeStr.length === 5 ? `${timeStr}:00` : timeStr;
   return new Date(`${cleanDate}T${cleanTime}`);
+};
+
+const dayNames = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+];
+
+const normalizeDateString = (value) => {
+  if (!value) return null;
+  if (typeof value === "string") return value.substring(0, 10);
+  return value.toISOString().substring(0, 10);
+};
+
+const dateOnly = (dateStr) => {
+  const [year, month, day] = normalizeDateString(dateStr).split("-").map(Number);
+  return new Date(year, month - 1, day);
+};
+
+const minutesFromTime = (value) => {
+  if (value instanceof Date) {
+    return value.getHours() * 60 + value.getMinutes();
+  }
+
+  const [hours, minutes] = String(value || "00:00").split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+const validateSlotAgainstSchedule = async ({
+  providerId,
+  serviceId,
+  slotDate,
+  startTime,
+  endTime,
+}) => {
+  const normalizedSlotDate = normalizeDateString(slotDate);
+  const today = dateOnly(new Date().toISOString().substring(0, 10));
+  const targetDate = dateOnly(normalizedSlotDate);
+
+  if (targetDate < today) {
+    const error = new Error("Tanggal slot tidak boleh di masa lalu");
+    error.status = 400;
+    throw error;
+  }
+
+  if (!startTime || !endTime || Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) {
+    const error = new Error("Format waktu slot tidak valid");
+    error.status = 400;
+    throw error;
+  }
+
+  if (endTime <= startTime) {
+    const error = new Error("Jam selesai slot harus lebih besar dari jam mulai");
+    error.status = 400;
+    throw error;
+  }
+
+  const day = dayNames[targetDate.getDay()];
+  const schedules = await ServiceSchedule.findAll({
+    where: {
+      provider_id: providerId,
+      service_id: serviceId,
+      day,
+      is_available: true,
+    },
+  });
+
+  if (schedules.length === 0) {
+    const error = new Error(`Tidak ada jadwal aktif untuk ${day} pada layanan ini`);
+    error.status = 400;
+    throw error;
+  }
+
+  const slotStart = minutesFromTime(startTime);
+  const slotEnd = minutesFromTime(endTime);
+  const isInsideSchedule = schedules.some((schedule) => {
+    const scheduleStart = minutesFromTime(schedule.start_time);
+    const scheduleEnd = minutesFromTime(schedule.end_time);
+    return slotStart >= scheduleStart && slotEnd <= scheduleEnd;
+  });
+
+  if (!isInsideSchedule) {
+    const error = new Error("Jam slot harus berada di dalam rentang jadwal aktif provider");
+    error.status = 400;
+    throw error;
+  }
 };
 
 router.post(
@@ -85,8 +176,20 @@ router.post(
         return res.status(404).json({ message: "Service tidak ditemukan" });
       }
 
+      if (Number(service.provider_id) !== Number(providerId)) {
+        return res.status(400).json({ message: "Service tidak sesuai dengan provider" });
+      }
+
       const parsedStartTime = parseSlotDateTime(slot_date, start_time);
       const parsedEndTime = parseSlotDateTime(slot_date, end_time);
+
+      await validateSlotAgainstSchedule({
+        providerId,
+        serviceId: service_id,
+        slotDate: slot_date,
+        startTime: parsedStartTime,
+        endTime: parsedEndTime,
+      });
 
       const slot = await TimeSlot.create({
         provider_id: providerId,
@@ -103,7 +206,7 @@ router.post(
         data: slot,
       });
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      res.status(error.status || 500).json({ message: error.message });
     }
   },
 );
@@ -191,14 +294,37 @@ router.put(
         return res.status(400).json({ message: "Capacity minimal 1" });
       }
 
+      const providerId = payload.provider_id || slot.provider_id;
+      const serviceId = payload.service_id || slot.service_id;
+      const slotDate = normalizeDateString(payload.slot_date || slot.slot_date);
+
+      if (!canManageSlot(req.user, providerId)) {
+        return res.status(403).json({ message: "Akses ditolak" });
+      }
+
+      const service = await Service.findByPk(serviceId);
+      if (!service) {
+        return res.status(404).json({ message: "Service tidak ditemukan" });
+      }
+
+      if (Number(service.provider_id) !== Number(providerId)) {
+        return res.status(400).json({ message: "Service tidak sesuai dengan provider" });
+      }
+
       if (payload.start_time) {
-        const targetDate = payload.slot_date || slot.slot_date;
-        payload.start_time = parseSlotDateTime(targetDate, payload.start_time);
+        payload.start_time = parseSlotDateTime(slotDate, payload.start_time);
       }
       if (payload.end_time) {
-        const targetDate = payload.slot_date || slot.slot_date;
-        payload.end_time = parseSlotDateTime(targetDate, payload.end_time);
+        payload.end_time = parseSlotDateTime(slotDate, payload.end_time);
       }
+
+      await validateSlotAgainstSchedule({
+        providerId,
+        serviceId,
+        slotDate,
+        startTime: payload.start_time || slot.start_time,
+        endTime: payload.end_time || slot.end_time,
+      });
 
       await slot.update(payload);
       const data = await withSlotAvailability(slot);
@@ -208,7 +334,7 @@ router.put(
         data,
       });
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      res.status(error.status || 500).json({ message: error.message });
     }
   },
 );
