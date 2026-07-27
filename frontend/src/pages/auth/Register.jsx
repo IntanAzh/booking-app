@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { User, Lock, Mail, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, Mail, ArrowRight, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -47,6 +47,13 @@ const Register = () => {
         <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-pink-200 rounded-full blur-3xl opacity-50"></div>
         
         <div className="relative">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-primary-600 transition-colors mb-6"
+          >
+            <ArrowLeft size={16} />
+            Kembali ke Beranda
+          </Link>
           <h2 className="text-center text-3xl font-extrabold text-slate-900">
             Create an account
           </h2>

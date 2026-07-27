@@ -57,7 +57,7 @@ const ProviderDashboard = () => {
 
       // Today's schedules — filter by current day name
       const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-      const todaySchedules = schedules.filter(s => s.day_of_week?.toLowerCase() === today && s.is_active);
+      const todaySchedules = schedules.filter(s => s.day?.toLowerCase() === today && s.is_available);
 
       // Calculate total revenue from completed payments
       const totalRevenue = payments

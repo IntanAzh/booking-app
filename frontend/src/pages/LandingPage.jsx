@@ -61,7 +61,7 @@ const LandingPage = () => {
     },
     {
       q: "Bagaimana jika saya ingin mendaftar sebagai Penyedia Layanan (Provider)?",
-      a: "Anda dapat melakukan registrasi akun dan memilih peran sebagai Provider, atau menghubungi tim support kami untuk memverifikasi profil bisnis dan mulai menawarkan layanan Anda."
+      a: "Akun Provider dibuat dan diverifikasi oleh administrator. Hubungi tim support kami agar profil bisnis Anda dapat ditinjau sebelum mulai menawarkan layanan."
     },
     {
       q: "Apakah ada biaya tambahan saat melakukan reservasi?",
@@ -128,7 +128,7 @@ const LandingPage = () => {
                     className="bg-primary-600 text-white px-5 py-2.5 rounded-xl hover:bg-primary-700 transition-all shadow-md hover:shadow-lg text-sm font-semibold flex items-center gap-2"
                   >
                     <User size={16} />
-                    Daftar Bebas
+                    Daftar Pelanggan
                   </Link>
                 </div>
               )}

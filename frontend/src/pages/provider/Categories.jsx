@@ -14,8 +14,7 @@ const ProviderCategories = () => {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [formData, setFormData] = useState({
-    name: '',
-    slug: ''
+    name: ''
   });
 
   useEffect(() => {
@@ -37,7 +36,7 @@ const ProviderCategories = () => {
 
   const openCreateModal = () => {
     setEditingCategory(null);
-    setFormData({ name: '', slug: '' });
+    setFormData({ name: '' });
     setFormError('');
     setIsModalOpen(true);
   };
@@ -45,36 +44,18 @@ const ProviderCategories = () => {
   const handleEdit = (row) => {
     setEditingCategory(row);
     setFormData({
-      name: row.name || '',
-      slug: row.slug || ''
+      name: row.name || ''
     });
     setFormError('');
     setIsModalOpen(true);
   };
 
-  const generateSlug = (text) => {
-    return text
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/[\s_]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'name') {
-      setFormData((prev) => ({
-        ...prev,
-        name: value,
-        slug: generateSlug(value)
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value
-      }));
-    }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value
+    }));
     if (formError) setFormError('');
   };
 
@@ -87,22 +68,10 @@ const ProviderCategories = () => {
       return;
     }
 
-    if (!formData.slug || !formData.slug.trim()) {
-      setFormError('Slug kategori wajib diisi');
-      return;
-    }
-
-    const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-    if (!slugRegex.test(formData.slug.trim())) {
-      setFormError('Slug hanya boleh berisi huruf kecil, angka, dan tanda hubung (-) tanpa spasi');
-      return;
-    }
-
     try {
       setSubmitting(true);
       const payload = {
-        name: formData.name.trim(),
-        slug: formData.slug.trim()
+        name: formData.name.trim()
       };
 
       if (editingCategory) {
@@ -113,7 +82,7 @@ const ProviderCategories = () => {
 
       setIsModalOpen(false);
       setEditingCategory(null);
-      setFormData({ name: '', slug: '' });
+      setFormData({ name: '' });
       fetchCategories();
     } catch (err) {
       setFormError(err.response?.data?.message || err.message || 'Gagal menyimpan kategori');
@@ -174,7 +143,7 @@ const ProviderCategories = () => {
         <DataTable 
           columns={columns} 
           data={categories} 
-          searchPlaceholder="Cari nama atau slug..."
+          searchPlaceholder="Cari nama kategori..."
           onEdit={handleEdit}
           onDelete={handleDelete}
         />
@@ -225,25 +194,6 @@ const ProviderCategories = () => {
                     required
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Slug URL
-                </label>
-                <div className="relative">
-                  <Tag size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input 
-                    type="text"
-                    name="slug"
-                    value={formData.slug}
-                    onChange={handleInputChange}
-                    placeholder="spa-kesehatan"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-800 text-sm font-mono"
-                    required
-                  />
-                </div>
-                <p className="text-xs text-slate-400 mt-1">Gunakan huruf kecil, angka, dan tanda hubung (-).</p>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">

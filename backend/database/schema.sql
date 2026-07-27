@@ -16,10 +16,14 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS categories (
   id INT NOT NULL AUTO_INCREMENT,
   name VARCHAR(255) NOT NULL,
+  slug VARCHAR(255) NULL,
+  description TEXT NULL,
+  image_url VARCHAR(255) NULL,
   createdAt DATETIME NOT NULL,
   updatedAt DATETIME NOT NULL,
   PRIMARY KEY (id),
-  UNIQUE KEY categories_name_unique (name)
+  UNIQUE KEY categories_name_unique (name),
+  UNIQUE KEY categories_slug_unique (slug)
 );
 
 CREATE TABLE IF NOT EXISTS services (

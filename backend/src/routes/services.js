@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { Op } = require("sequelize");
 
 const Service = require("../models/service");
 const Category = require("../models/category");
@@ -42,6 +43,42 @@ const validateProvider = async (providerId) => {
   return provider;
 };
 
+const slugify = (text) =>
+  String(text || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/[\s_]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const buildUniqueServiceSlug = async (name, currentId = null) => {
+  const baseSlug = slugify(name);
+  if (!baseSlug) return null;
+
+  let slug = baseSlug;
+  let suffix = 2;
+
+  while (
+    await Service.findOne({
+      where: {
+        slug,
+        ...(currentId
+          ? {
+              id: {
+                [Op.ne]: currentId,
+              },
+            }
+          : {}),
+      },
+    })
+  ) {
+    slug = `${baseSlug}-${suffix}`;
+    suffix += 1;
+  }
+
+  return slug;
+};
+
 // Create Service
 
 router.post(
@@ -54,7 +91,6 @@ router.post(
         category_id,
         provider_id,
         name,
-        slug,
         description,
         price,
         duration,
@@ -87,7 +123,7 @@ router.post(
         category_id,
         provider_id: providerId,
         name,
-        slug,
+        slug: await buildUniqueServiceSlug(name),
         description,
         price,
         duration,
@@ -223,6 +259,18 @@ router.put(
         }
 
         await validateProvider(payload.provider_id);
+      }
+
+      if (payload.name !== undefined) {
+        if (!payload.name) {
+          return res.status(400).json({
+            message: "Name tidak boleh kosong",
+          });
+        }
+
+        payload.slug = await buildUniqueServiceSlug(payload.name, service.id);
+      } else {
+        delete payload.slug;
       }
 
       await service.update(payload);

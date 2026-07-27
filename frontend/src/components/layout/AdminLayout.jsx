@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, Users, Calendar, Settings, Bell, 
+  LayoutDashboard, Users, Calendar, Settings,
   LogOut, Briefcase, ListOrdered, CalendarDays, Clock, DollarSign, TrendingUp
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
@@ -69,10 +69,6 @@ const AdminLayout = () => {
         {/* Header */}
         <header className="h-16 bg-white border-b border-slate-200 flex justify-end items-center px-8 shadow-sm sticky top-0 z-10">
           <div className="flex items-center gap-6">
-            <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
-              <Bell size={20} />
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
             <div className="flex items-center gap-3 border-l border-slate-200 pl-6">
               <div className="text-right hidden md:block">
                 <div className="text-sm font-bold text-slate-800">{user?.name}</div>

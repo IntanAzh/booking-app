@@ -15,6 +15,22 @@ const Category = sequelize.define(
       allowNull: false,
       unique: true,
     },
+
+    slug: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
+    },
+
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+
+    image_url: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   },
   {
     tableName: "categories",

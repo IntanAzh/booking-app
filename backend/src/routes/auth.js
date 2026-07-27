@@ -21,19 +21,12 @@ router.get("/", (req, res) => {
 // register
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
     // validasi input
     if (!name || !email || !password) {
       return res.status(400).json({
         message: "Semua field wajib diisi",
-      });
-    }
-
-    const allowedRoles = ["admin", "customer", "provider"];
-    if (role && !allowedRoles.includes(role)) {
-      return res.status(400).json({
-        message: "Role tidak valid",
       });
     }
 
@@ -56,8 +49,6 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    const userRole = (role && allowedRoles.includes(role)) ? role : "customer";
-
     // hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -66,7 +57,7 @@ router.post("/register", async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: userRole,
+      role: "customer",
     });
 
     res.status(201).json({

@@ -152,7 +152,7 @@ const CustomerBookings = () => {
   const handleCancelBooking = async (booking) => {
     if (window.confirm(`Yakin ingin membatalkan pesanan #${booking.id} (${booking.service?.name})?`)) {
       try {
-        await bookingApi.updateBookingStatus(booking.id, 'cancelled');
+        await bookingApi.cancelBooking(booking.id);
         fetchBookings();
       } catch (err) {
         alert('Gagal membatalkan pesanan: ' + (err.response?.data?.message || err.message));

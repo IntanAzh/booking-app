@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, UserPlus, Mail, Lock, User as UserIcon, Shield, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Plus, X, UserPlus, Mail, Lock, User as UserIcon, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import DataTable from '../../components/common/DataTable';
 import { userService } from '../../services/userService';
 import { authService } from '../../services/authService';
@@ -17,8 +17,7 @@ const Users = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: '',
-    role: 'customer'
+    password: ''
   });
 
   useEffect(() => {
@@ -63,9 +62,9 @@ const Users = () => {
 
     try {
       setSubmitting(true);
-      await authService.register(formData);
+      await authService.register({ ...formData, role: 'customer' });
       setIsModalOpen(false);
-      setFormData({ name: '', email: '', password: '', role: 'customer' });
+      setFormData({ name: '', email: '', password: '' });
       fetchUsers();
     } catch (err) {
       setFormError(err.response?.data?.message || err.message || 'Gagal menambah user');
@@ -115,7 +114,7 @@ const Users = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Manajemen Users</h1>
-          <p className="text-slate-500 mt-1">Kelola data pelanggan, provider, dan admin.</p>
+          <p className="text-slate-500 mt-1">Kelola data pelanggan. Provider dibuat melalui menu Providers.</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
@@ -230,25 +229,6 @@ const Users = () => {
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Role Pengguna
-                </label>
-                <div className="relative">
-                  <Shield size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <select 
-                    name="role"
-                    value={formData.role}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-slate-800 text-sm bg-white"
-                  >
-                    <option value="customer">Customer</option>
-                    <option value="provider">Provider</option>
-                    <option value="admin">Admin</option>
-                  </select>
                 </div>
               </div>
 
