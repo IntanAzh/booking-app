@@ -62,7 +62,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Create category
-router.post("/", verifyToken, checkRole(["admin", "provider"]), async (req, res) => {
+router.post("/", verifyToken, checkRole(["provider"]), async (req, res) => {
   try {
     const { name, description, image_url } = req.body;
     if (!name) return res.status(400).json({ message: "Name wajib diisi" });
@@ -76,7 +76,7 @@ router.post("/", verifyToken, checkRole(["admin", "provider"]), async (req, res)
 });
 
 // Update category
-router.put("/:id", verifyToken, checkRole(["admin", "provider"]), async (req, res) => {
+router.put("/:id", verifyToken, checkRole(["provider"]), async (req, res) => {
   try {
     const category = await Category.findByPk(req.params.id);
     if (!category) return res.status(404).json({ message: "Category tidak ditemukan" });
@@ -97,7 +97,7 @@ router.put("/:id", verifyToken, checkRole(["admin", "provider"]), async (req, re
 });
 
 // Delete category
-router.delete("/:id", verifyToken, checkRole(["admin", "provider"]), async (req, res) => {
+router.delete("/:id", verifyToken, checkRole(["provider"]), async (req, res) => {
   try {
     const category = await Category.findByPk(req.params.id);
     if (!category) return res.status(404).json({ message: "Category tidak ditemukan" });

@@ -7,7 +7,7 @@ const User = require("../models/user");
 const { verifyToken, checkRole } = require("../middlewares/authMiddleware");
 
 const canManageSchedule = (user, providerId) =>
-  user.role === "admin" || Number(user.id) === Number(providerId);
+  Number(user.id) === Number(providerId);
 
 const validDays = [
   "monday",
@@ -24,18 +24,17 @@ const parseBoolean = (value) => value === true || value === "true" || value === 
 router.post(
   "/",
   verifyToken,
-  checkRole(["admin", "provider"]),
+  checkRole(["provider"]),
   async (req, res) => {
     try {
       const {
-        provider_id,
         service_id,
         day,
         start_time,
         end_time,
         is_available,
       } = req.body;
-      const providerId = provider_id || req.user.id;
+      const providerId = req.user.id;
 
       if (!providerId || !service_id || !day || !start_time || !end_time) {
         return res.status(400).json({ message: "Data jadwal wajib diisi" });
@@ -138,7 +137,7 @@ router.get("/:id", async (req, res) => {
 router.put(
   "/:id",
   verifyToken,
-  checkRole(["admin", "provider"]),
+  checkRole(["provider"]),
   async (req, res) => {
     try {
       const schedule = await ServiceSchedule.findByPk(req.params.id);
@@ -181,7 +180,7 @@ router.put(
 router.delete(
   "/:id",
   verifyToken,
-  checkRole(["admin", "provider"]),
+  checkRole(["provider"]),
   async (req, res) => {
     try {
       const schedule = await ServiceSchedule.findByPk(req.params.id);

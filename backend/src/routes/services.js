@@ -84,12 +84,11 @@ const buildUniqueServiceSlug = async (name, currentId = null) => {
 router.post(
   "/",
   verifyToken,
-  checkRole(["admin", "provider"]),
+  checkRole(["provider"]),
   async (req, res) => {
     try {
       const {
         category_id,
-        provider_id,
         name,
         description,
         price,
@@ -104,17 +103,7 @@ router.post(
         });
       }
 
-      const providerId =
-        provider_id || (req.user.role === "provider" ? req.user.id : null);
-
-      if (
-        req.user.role === "provider" &&
-        Number(providerId) !== Number(req.user.id)
-      ) {
-        return res.status(403).json({
-          message: "Provider hanya bisa membuat layanan untuk dirinya sendiri",
-        });
-      }
+      const providerId = req.user.id;
 
       await validateCategory(category_id);
       await validateProvider(providerId);
@@ -216,7 +205,7 @@ router.get("/:id", async (req, res) => {
 router.put(
   "/:id",
   verifyToken,
-  checkRole(["admin", "provider"]),
+  checkRole(["provider"]),
   async (req, res) => {
     try {
       const service = await Service.findByPk(req.params.id);
@@ -227,19 +216,14 @@ router.put(
         });
       }
 
-      if (
-        req.user.role === "provider" &&
-        Number(service.provider_id) !== Number(req.user.id)
-      ) {
+      if (Number(service.provider_id) !== Number(req.user.id)) {
         return res.status(403).json({
           message: "Akses ditolak",
         });
       }
 
       const payload = { ...req.body };
-      if (req.user.role === "provider") {
-        delete payload.provider_id;
-      }
+      delete payload.provider_id;
 
       if (payload.category_id !== undefined) {
         if (!payload.category_id) {
@@ -249,16 +233,6 @@ router.put(
         }
 
         await validateCategory(payload.category_id);
-      }
-
-      if (payload.provider_id !== undefined) {
-        if (!payload.provider_id) {
-          return res.status(400).json({
-            message: "Provider tidak boleh kosong",
-          });
-        }
-
-        await validateProvider(payload.provider_id);
       }
 
       if (payload.name !== undefined) {
@@ -289,7 +263,7 @@ router.put(
 
 // Delete Service
 
-router.delete("/:id", verifyToken, checkRole(["admin", "provider"]), async (req, res) => {
+router.delete("/:id", verifyToken, checkRole(["provider"]), async (req, res) => {
   try {
     const service = await Service.findByPk(req.params.id);
 
@@ -299,10 +273,7 @@ router.delete("/:id", verifyToken, checkRole(["admin", "provider"]), async (req,
       });
     }
 
-    if (
-      req.user.role === "provider" &&
-      Number(service.provider_id) !== Number(req.user.id)
-    ) {
+    if (Number(service.provider_id) !== Number(req.user.id)) {
       return res.status(403).json({
         message: "Akses ditolak: Anda hanya dapat menghapus layanan milik Anda sendiri",
       });
