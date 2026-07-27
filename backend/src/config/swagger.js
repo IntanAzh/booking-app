@@ -1,4 +1,4 @@
-const apiBaseUrl = process.env.API_BASE_URL || "http://20.2.233.219:3000";
+const apiBaseUrl = process.env.API_BASE_URL || "https://api.bookingapp.online";
 
 const swaggerDocument = {
   openapi: "3.0.3",
