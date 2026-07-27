@@ -22,8 +22,15 @@ export const bookingApi = {
     return response.data;
   },
 
+  // Endpoint khusus cancel: menangani slot release + payment refund otomatis
+  cancelBooking: async (id, reason = null) => {
+    const response = await api.patch(`/bookings/${id}/cancel`, { reason });
+    return response.data;
+  },
+
   deleteBooking: async (id) => {
     const response = await api.delete(`/bookings/${id}`);
     return response.data;
   }
 };
+

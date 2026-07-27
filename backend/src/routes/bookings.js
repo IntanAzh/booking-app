@@ -64,11 +64,14 @@ const getSlotBookingCount = (slotId, transaction) =>
     transaction,
   });
 
-const syncSlotStatus = async (slotId, transaction) => {
-  const slot = await TimeSlot.findByPk(slotId, {
-    transaction,
-    lock: transaction.LOCK.UPDATE,
-  });
+const syncSlotStatus = async (slotId, transaction = null) => {
+  const findOptions = { transaction };
+  // Hanya pakai LOCK jika berjalan dalam transaksi
+  if (transaction) {
+    findOptions.lock = transaction.LOCK.UPDATE;
+  }
+
+  const slot = await TimeSlot.findByPk(slotId, findOptions);
 
   if (!slot || slot.status === "blocked") {
     return slot;
@@ -536,39 +539,44 @@ router.put(
   verifyToken,
   checkRole(["admin", "provider"]),
   async (req, res) => {
+    const transaction = await sequelize.transaction();
     try {
       const { status } = req.body;
       const validStatuses = ["pending", "confirmed", "completed", "cancelled"];
 
       if (!validStatuses.includes(status)) {
+        await transaction.rollback();
         return res.status(400).json({ message: "Status booking tidak valid" });
       }
 
-      const booking = await Booking.findByPk(req.params.id);
+      const booking = await Booking.findByPk(req.params.id, { transaction });
 
       if (!booking) {
+        await transaction.rollback();
         return res.status(404).json({
           message: "Booking tidak ditemukan",
         });
       }
 
       if (!canManageBooking(req.user, booking)) {
+        await transaction.rollback();
         return res.status(403).json({ message: "Akses ditolak" });
       }
 
-      await booking.update({
-        status,
-      });
+      await booking.update({ status }, { transaction });
 
       if (booking.slot_id) {
-        await syncSlotStatus(booking.slot_id);
+        await syncSlotStatus(booking.slot_id, transaction);
       }
+
+      await transaction.commit();
 
       res.json({
         message: "Status booking berhasil diupdate",
         data: booking,
       });
     } catch (error) {
+      await transaction.rollback();
       res.status(500).json({
         message: error.message,
       });

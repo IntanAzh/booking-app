@@ -31,11 +31,11 @@ const getBookingStats = async (bookingScope = {}) => {
 };
 
 const getRevenueStats = async (bookingScope = {}) => {
+  // Hitung semua booking yang sudah dibayar (tidak perlu menunggu status "completed")
   const totalRevenue =
     (await Booking.sum("total_price", {
       where: {
         ...bookingScope,
-        status: "completed",
         payment_status: "paid",
       },
     })) || 0;
@@ -43,7 +43,6 @@ const getRevenueStats = async (bookingScope = {}) => {
   const paidBookingCount = await Booking.count({
     where: {
       ...bookingScope,
-      status: "completed",
       payment_status: "paid",
     },
   });

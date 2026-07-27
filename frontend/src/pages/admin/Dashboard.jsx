@@ -48,13 +48,8 @@ const AdminDashboard = () => {
       setExporting(true);
       const res = await paymentService.getAllPayments();
       const payments = res.data || [];
-      const revenue = dashboardData?.revenue?.total_revenue || 0;
-      const paidCount = dashboardData?.revenue?.paid_completed_bookings || 0;
-
-      generateAdminFinancialReportPDF(payments, {
-        total_revenue: revenue,
-        paid_count: paidCount
-      });
+      // Bug #G Fix: PDF generator hitung sendiri dari payments[], jangan kirim summary dari backend
+      generateAdminFinancialReportPDF(payments);
     } catch (err) {
       alert('Gagal mengunduh laporan PDF: ' + (err.message || 'Terjadi kesalahan'));
     } finally {

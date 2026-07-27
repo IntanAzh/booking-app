@@ -26,18 +26,14 @@ const Payments = () => {
   };
 
   const handleExportPDF = () => {
-    const totalRev = payments.reduce((acc, p) => (p.status === 'paid' || p.status === 'completed' ? acc + Number(p.amount || 0) : acc), 0);
-    const paidCount = payments.filter(p => p.status === 'paid' || p.status === 'completed').length;
-    
-    generateAdminFinancialReportPDF(payments, {
-      total_revenue: totalRev,
-      paid_count: paidCount
-    });
+    // PDF generator hitung sendiri dari payments[]
+    generateAdminFinancialReportPDF(payments);
   };
 
-  const totalRevenue = payments.reduce((acc, p) => (p.status === 'paid' || p.status === 'completed' ? acc + Number(p.amount || 0) : acc), 0);
-  const paidCount = payments.filter(p => p.status === 'paid' || p.status === 'completed').length;
-  const pendingCount = payments.filter(p => p.status === 'pending').length;
+  const st = (p) => String(p?.status || '').toLowerCase();
+  const totalRevenue = payments.reduce((acc, p) => st(p) === 'paid' ? acc + Number(p.amount || 0) : acc, 0);
+  const paidCount = payments.filter(p => st(p) === 'paid').length;
+  const pendingCount = payments.filter(p => st(p) === 'pending').length;
 
   const columns = [
     { header: 'ID Tx', accessor: 'id', render: (row) => <span className="font-mono text-xs font-bold text-slate-700">#{row.id}</span> },

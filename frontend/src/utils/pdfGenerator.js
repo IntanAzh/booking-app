@@ -199,16 +199,12 @@ export const generateAdminFinancialReportPDF = (payments = [], summary = {}) => 
   doc.setDrawColor(226, 232, 240);
   doc.roundedRect(14, 43, 182, 28, 3, 3, 'D');
 
-  const totalRev = summary?.total_revenue !== undefined 
-    ? summary.total_revenue 
-    : payments.reduce((acc, p) => (p.status === 'paid' || p.status === 'completed' ? acc + Number(p.amount || 0) : acc), 0);
-
-  const paidCount = summary?.paid_count !== undefined 
-    ? summary.paid_count 
-    : payments.filter(p => p.status === 'paid' || p.status === 'completed').length;
-
-  const pendingCount = payments.filter(p => p.status === 'pending').length;
-  const failedCount = payments.filter(p => p.status === 'failed' || p.status === 'refunded').length;
+  // Selalu hitung dari data payments aktual (status di tabel payments: paid/pending/failed/refunded)
+  const st = (p) => String(p?.status || '').toLowerCase();
+  const totalRev   = payments.reduce((acc, p) => st(p) === 'paid' ? acc + Number(p.amount || 0) : acc, 0);
+  const paidCount   = payments.filter(p => st(p) === 'paid').length;
+  const pendingCount = payments.filter(p => st(p) === 'pending').length;
+  const failedCount  = payments.filter(p => st(p) === 'failed' || st(p) === 'refunded').length;
 
   // Metric 1: Revenue
   doc.setFontSize(8.5);
