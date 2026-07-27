@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { 
   Plus, Calendar as CalendarIcon, Clock, DollarSign, AlertCircle, X, CheckCircle2, 
   XCircle, CreditCard, User, Tag, RefreshCw, Store, Info, ChevronRight, ArrowLeft, 
-  ShieldCheck, Lock, Sparkles, Check, FileText
+  ShieldCheck, Lock, Sparkles, Check, FileText, Download
 } from 'lucide-react';
 import DataTable from '../../components/common/DataTable';
 import { bookingApi } from '../../services/bookingApi';
@@ -11,6 +11,7 @@ import { slotService } from '../../services/slotService';
 import { scheduleService } from '../../services/scheduleService';
 import { paymentService } from '../../services/paymentService';
 import { AuthContext } from '../../context/AuthContext';
+import { generateCustomerReceiptPDF } from '../../utils/pdfGenerator';
 
 const CustomerBookings = () => {
   const { user } = useContext(AuthContext);
@@ -738,7 +739,15 @@ const CustomerBookings = () => {
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end">
+            <div className="mt-6 flex justify-end gap-2">
+              {detailBooking.payment_status === 'paid' && (
+                <button
+                  onClick={() => generateCustomerReceiptPDF(null, detailBooking)}
+                  className="px-4 py-2.5 bg-primary-600 text-white rounded-xl text-xs font-bold hover:bg-primary-700 transition-all flex items-center gap-1.5 shadow-sm"
+                >
+                  <Download size={14} /> Unduh Resi PDF
+                </button>
+              )}
               <button
                 onClick={() => setDetailBooking(null)}
                 className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors"

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, RefreshCw } from 'lucide-react';
+import { CreditCard, RefreshCw, Download } from 'lucide-react';
 import DataTable from '../../components/common/DataTable';
 import { paymentService } from '../../services/paymentService';
+import { generateCustomerReceiptPDF } from '../../utils/pdfGenerator';
 
 const CustomerPayments = () => {
   const [payments, setPayments] = useState([]);
@@ -60,7 +61,7 @@ const CustomerPayments = () => {
       accessor: 'status',
       render: (row) => {
         let badgeStyle = 'bg-slate-100 text-slate-700';
-        if (row.status === 'paid') badgeStyle = 'bg-green-100 text-green-700';
+        if (row.status === 'paid' || row.status === 'completed') badgeStyle = 'bg-green-100 text-green-700';
         if (row.status === 'failed') badgeStyle = 'bg-red-100 text-red-700';
         if (row.status === 'refunded') badgeStyle = 'bg-purple-100 text-purple-700';
         if (row.status === 'pending') badgeStyle = 'bg-amber-100 text-amber-700';
@@ -71,6 +72,23 @@ const CustomerPayments = () => {
           </span>
         );
       }
+    },
+    {
+      header: 'Resi PDF',
+      accessor: 'actions',
+      render: (row) => (
+        row.status === 'paid' || row.status === 'completed' ? (
+          <button
+            onClick={() => generateCustomerReceiptPDF(row)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary-50 text-primary-700 hover:bg-primary-100 border border-primary-200 rounded-lg transition-colors shadow-sm"
+            title="Unduh Bukti Pembayaran PDF"
+          >
+            <Download size={14} /> Unduh PDF
+          </button>
+        ) : (
+          <span className="text-xs text-slate-400 font-medium">-</span>
+        )
+      )
     }
   ];
 
@@ -111,3 +129,4 @@ const CustomerPayments = () => {
 };
 
 export default CustomerPayments;
+

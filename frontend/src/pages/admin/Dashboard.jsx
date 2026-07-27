@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Users, CreditCard, Box, Activity, TrendingUp } from 'lucide-react';
+import { Users, CreditCard, Box, Activity, TrendingUp, Download } from 'lucide-react';
 import api from '../../services/api';
+import { paymentService } from '../../services/paymentService';
+import { generateAdminFinancialReportPDF } from '../../utils/pdfGenerator';
 
 const StatCard = ({ title, value, icon: Icon, color, description }) => (
   <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
@@ -21,6 +23,7 @@ const AdminDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -37,6 +40,25 @@ const AdminDashboard = () => {
       setError(err.response?.data?.message || err.message || 'Gagal memuat data dashboard');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      setExporting(true);
+      const res = await paymentService.getAllPayments();
+      const payments = res.data || [];
+      const revenue = dashboardData?.revenue?.total_revenue || 0;
+      const paidCount = dashboardData?.revenue?.paid_completed_bookings || 0;
+
+      generateAdminFinancialReportPDF(payments, {
+        total_revenue: revenue,
+        paid_count: paidCount
+      });
+    } catch (err) {
+      alert('Gagal mengunduh laporan PDF: ' + (err.message || 'Terjadi kesalahan'));
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -69,12 +91,21 @@ const AdminDashboard = () => {
           <h1 className="text-2xl font-bold text-slate-900">Dashboard Overview</h1>
           <p className="text-slate-500 mt-1">Pantau metrik utama aplikasi dari data terkini database.</p>
         </div>
-        <button 
-          onClick={fetchDashboardData}
-          className="bg-white border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 rounded-lg shadow-sm hover:bg-slate-50 flex items-center gap-2"
-        >
-          <TrendingUp size={16} /> Refresh Data
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={fetchDashboardData}
+            className="bg-white border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 rounded-lg shadow-sm hover:bg-slate-50 flex items-center gap-2"
+          >
+            <TrendingUp size={16} /> Refresh Data
+          </button>
+          <button 
+            onClick={handleDownloadPDF}
+            disabled={exporting}
+            className="bg-emerald-600 text-white px-4 py-2 text-sm font-semibold rounded-lg shadow-md hover:bg-emerald-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            <Download size={16} /> {exporting ? 'Memproses...' : 'Unduh Laporan PDF'}
+          </button>
+        </div>
       </div>
 
       {/* Stat Cards Live Database */}
@@ -163,3 +194,4 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
