@@ -104,6 +104,7 @@ docker compose down -v
 - Saat volume database masih kosong, MySQL akan menjalankan `database/schema.sql`.
 - Jangan pakai `DB_HOST=localhost` di VPS Docker. Nilai yang benar adalah `mysql`.
 - Jika mengubah `DB_PASS`, pastikan `MYSQL_ROOT_PASSWORD` di `.env.docker` sama.
+- Untuk frontend Vercel, gunakan API HTTPS seperti `https://api.domainkamu.com/api`, bukan `http://IP_VPS_KAMU:3000/api`. Pasang Nginx reverse proxy dan SSL Let's Encrypt di VPS agar backend bisa diakses lewat HTTPS.
 
 ## Verifikasi cepat
 

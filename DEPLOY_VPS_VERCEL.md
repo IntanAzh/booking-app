@@ -139,15 +139,95 @@ http://IP_VPS_ANDA:3000/api-docs
 
 | Name / Key | Value | Keterangan |
 | :--- | :--- | :--- |
-| `VITE_API_URL` | `http://IP_VPS_ANDA:3000/api` | URL API Backend VPS Anda |
+| `VITE_API_URL` | `https://api.domainanda.com/api` | URL API Backend VPS Anda |
 | `VITE_SUPABASE_URL` | `https://atpdfersupwoooxphhtw.supabase.co` | URL Supabase Anda |
 | `VITE_SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR...` | Anon Key Supabase Anda |
 | `VITE_SUPABASE_BUCKET` | `service-images` | Nama Bucket Supabase Storage |
 
-*(Catatan: Jika VPS Anda sudah memakai HTTPS/Domain misal `https://api.domainanda.com`, gunakan `https://api.domainanda.com/api` pada `VITE_API_URL`)*.
+*(Catatan: Frontend Vercel berjalan di HTTPS, jadi API backend juga sebaiknya memakai HTTPS. Jangan gunakan `http://IP_VPS_ANDA:3000/api` untuk production Vercel karena browser dapat memblokir request HTTP dari halaman HTTPS.)*
 
 6. Klik **Deploy**.
 7. Tunggu hingga proses build Vercel selesai (biasanya 1–2 menit). Vercel akan memberikan domain publik (contoh: `https://booking-app-xyz.vercel.app`).
+
+---
+
+## Catatan: Membuat Backend VPS Menjadi HTTPS
+
+Vercel memakai HTTPS. Agar frontend Vercel bisa mengakses backend dengan aman, arahkan domain/subdomain ke VPS lalu pasang SSL.
+
+Contoh target API:
+
+```text
+https://api.domainanda.com/api
+```
+
+### 1. Arahkan DNS ke VPS
+
+Buat DNS record:
+
+```text
+Type: A
+Name: api
+Value: IP_VPS_ANDA
+```
+
+Tunggu propagasi DNS, lalu pastikan `api.domainanda.com` sudah mengarah ke IP VPS.
+
+### 2. Install Nginx dan Certbot di VPS
+
+```bash
+sudo apt update
+sudo apt install nginx certbot python3-certbot-nginx -y
+```
+
+### 3. Buat Reverse Proxy Nginx
+
+```bash
+sudo nano /etc/nginx/sites-available/booking-api
+```
+
+Isi konfigurasi:
+
+```nginx
+server {
+    server_name api.domainanda.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Aktifkan konfigurasi:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/booking-api /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 4. Pasang SSL Gratis Let's Encrypt
+
+```bash
+sudo certbot --nginx -d api.domainanda.com
+```
+
+Setelah berhasil, API dapat dibuka melalui:
+
+```text
+https://api.domainanda.com/api-docs
+```
+
+Lalu set environment variable Vercel:
+
+```env
+VITE_API_URL=https://api.domainanda.com/api
+```
 
 ---
 
