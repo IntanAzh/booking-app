@@ -1,3 +1,5 @@
+const apiBaseUrl = process.env.API_BASE_URL || "https://api.bookingapp.online";
+
 const swaggerDocument = {
   openapi: "3.0.3",
   info: {
@@ -8,8 +10,8 @@ const swaggerDocument = {
   },
   servers: [
     {
-      url: "http://localhost:3000",
-      description: "Local development server",
+      url: apiBaseUrl,
+      description: "Configured API server",
     },
   ],
   tags: [
