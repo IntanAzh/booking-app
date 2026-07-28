@@ -15,6 +15,7 @@ const Categories = () => {
     try {
       setLoading(true);
       const data = await categoryService.getAllCategories();
+      
       setCategories(data.data || data || []);
       setError(null);
     } catch (err) {
